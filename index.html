@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>武汉地道美食地图 | 一人公司出品</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/config.js"></script>
+    <script type="text/javascript">
+        window._AMapSecurityConfig = { securityJsCode: AMAP_CONFIG.SECURITY_CODE }
+    </script>
+</head>
+<body>
+
+    <button id="drawer-toggle" type="button" aria-label="打开收藏夹">☰ 收藏夹</button>
+
+    <aside id="side-panel" aria-hidden="true">
+        <div class="drawer-header">
+            <h3>🍜 我的美食收藏夹</h3>
+        </div>
+        <div class="drawer-body">
+            <div id="collection-list"></div>
+        </div>
+    </aside>
+
+    <div id="search-float">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="搜索地道美食，点击收纳...">
+        </div>
+        <div id="result-list"></div>
+    </div>
+
+    <div id="container"></div>
+
+    <script src="https://webapi.amap.com/maps?v=2.0&key=9e003dbbac324e4fbb9df5874b7d8e57&plugin=AMap.PlaceSearch"></script>
+    <script src="js/map-engine.js"></script>
+    <script src="js/search.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

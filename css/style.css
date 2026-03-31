@@ -1,0 +1,348 @@
+/* css/style.css */
+:root {
+    --primary-color: #2c3e50;
+    --accent-color: #e74c3c;
+    --bg-light: #f9f9f9;
+}
+
+body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+
+#container { width: 100%; height: 100%; position: absolute; z-index: 1; }
+
+/* 左侧抽屉收藏夹 */
+#drawer-toggle {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 30;
+    border: none;
+    border-radius: 10px;
+    background: rgba(44, 62, 80, 0.92);
+    color: #fff;
+    font-size: 13px;
+    padding: 10px 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+#drawer-toggle:hover {
+    background: rgba(44, 62, 80, 1);
+}
+
+#side-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 320px;
+    height: 100%;
+    background: white;
+    z-index: 25;
+    box-shadow: 6px 0 18px rgba(0, 0, 0, 0.14);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(-104%);
+    transition: transform 0.25s ease;
+}
+
+#side-panel.open {
+    transform: translateX(0);
+}
+
+.drawer-header {
+    padding: 18px 16px;
+    background: var(--primary-color);
+    color: white;
+}
+
+.drawer-header h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    background: #fcfcfc;
+}
+
+/* 顶部居中悬浮搜索 */
+#search-float {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 400px;
+    z-index: 40;
+}
+
+.search-box { padding: 0; }
+#searchInput { 
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #d7d7d7;
+    border-radius: 14px;
+    outline: none;
+    box-sizing: border-box;
+    font-size: 14px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
+}
+
+#collection-list {
+    max-height: 100%;
+    overflow-y: auto;
+}
+
+.collection-title {
+    margin: 0;
+    padding: 10px 15px;
+    font-size: 12px;
+    color: #666;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.folder-group {
+    border-top: 1px solid #f3f3f3;
+}
+
+.folder-toggle {
+    width: 100%;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 15px;
+    cursor: pointer;
+    color: #333;
+}
+
+.folder-toggle:hover {
+    background: #f5f8ff;
+}
+
+.folder-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.folder-icon {
+    font-size: 14px;
+}
+
+.folder-name {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.folder-count {
+    font-size: 12px;
+    color: #888;
+}
+
+.folder-arrow {
+    font-size: 12px;
+    color: #999;
+    transition: transform 0.2s ease;
+}
+
+.folder-toggle[aria-expanded="true"] .folder-arrow {
+    transform: rotate(90deg);
+}
+
+.folder-items {
+    display: none;
+    padding: 0 8px 8px 8px;
+}
+
+.folder-items.open {
+    display: block;
+}
+
+.collection-item {
+    width: 100%;
+    border: 1px solid #f0f0f0;
+    background: white;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.collection-item:hover {
+    border-color: #d9e6ff;
+    background: #f8fbff;
+}
+
+.collection-item-main {
+    border: none;
+    background: transparent;
+    text-align: left;
+    padding: 0;
+    cursor: pointer;
+    width: 100%;
+}
+
+.collection-item-name {
+    display: block;
+    font-size: 13px;
+    color: #1f2d3d;
+}
+
+.collection-item-address {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    color: #8b8b8b;
+}
+
+.collection-delete {
+    border: none;
+    background: #fff1f1;
+    color: #d9534f;
+    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.collection-delete:hover {
+    background: #ffe3e3;
+}
+
+.collection-empty {
+    padding: 10px 15px 14px;
+    font-size: 12px;
+    color: #999;
+}
+
+#result-list {
+    margin-top: 8px;
+    max-height: 380px;
+    overflow-y: auto;
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 14px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(225, 225, 225, 0.9);
+    display: none;
+}
+
+#result-list.visible {
+    display: block;
+}
+
+.poi-item {
+    padding: 15px; border-bottom: 1px solid #f5f5f5; cursor: pointer;
+}
+.poi-item:hover { background: #f0f7ff; }
+.poi-item h4 { margin: 0 0 5px 0; font-size: 14px; }
+.poi-item p { margin: 0; font-size: 12px; color: #999; }
+
+.poi-actions {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.poi-category-select,
+.poi-category-new {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 12px;
+    padding: 6px 8px;
+    outline: none;
+    min-width: 0;
+}
+
+.poi-category-select {
+    width: calc(50% - 3px);
+}
+
+.poi-new-toggle {
+    width: calc(25% - 3px);
+    border: 1px solid #ddd;
+    background: #fff;
+    color: #333;
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.poi-new-toggle:hover {
+    background: #f7f7f7;
+}
+
+.poi-category-new {
+    width: 100%;
+    display: none;
+}
+
+.poi-category-new.visible {
+    display: block;
+}
+
+.poi-save-btn {
+    border: none;
+    background: var(--primary-color);
+    color: #fff;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    width: calc(25% - 3px);
+}
+
+.poi-save-btn:hover {
+    opacity: 0.92;
+}
+
+.poi-empty {
+    padding: 14px;
+    font-size: 12px;
+    color: #888;
+}
+
+.map-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: #2c3e50;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.35);
+}
+
+.map-name-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #1f2d3d;
+    color: #fff;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+    white-space: nowrap;
+}
+
+.map-name-badge.active {
+    background: linear-gradient(135deg, #ff5f52, #e74c3c);
+    transform: scale(1.04);
+}
+
+.amap-marker-label {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+}
