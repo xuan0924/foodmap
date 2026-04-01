@@ -154,8 +154,10 @@ function renderResultList(pois) {
             .map((category) => `<option value="${category}">${category}</option>`)
             .join('');
         div.innerHTML = `
-            <h4>${poi.name}</h4>
-            <p>${poi.address || '地址不详'}</p>
+            <button type="button" class="poi-item-head" aria-label="在地图上查看 ${poi.name}">
+                <h4>${poi.name}</h4>
+                <p>${poi.address || '地址不详'}</p>
+            </button>
             <div class="poi-actions">
                 <select class="poi-category-select">${categoryOptions}</select>
                 <button class="poi-new-toggle" type="button">+ 新建</button>
@@ -178,6 +180,16 @@ function renderResultList(pois) {
             }
         });
         saveBtn.addEventListener('click', () => handleSelectPoi(poi, categorySelect, categoryNew));
+
+        const headBtn = div.querySelector('.poi-item-head');
+        if (headBtn) {
+            headBtn.addEventListener('click', () => {
+                const lng = poi.location.lng;
+                const lat = poi.location.lat;
+                flyToPosition([lng, lat]);
+                closeResultList();
+            });
+        }
 
         listContainer.appendChild(div);
     });
