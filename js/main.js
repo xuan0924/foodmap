@@ -28,7 +28,8 @@ function loadAMapScript() {
         }
 
         const script = document.createElement('script');
-        script.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(AMAP_CONFIG.KEY)}&plugin=AMap.PlaceSearch,AMap.Geocoder,AMap.DistrictSearch,AMap.CitySearch,AMap.Geolocation`;
+        // 不在 URL 中预加载 plugin，统一改为 AMap.plugin(...) 动态加载，避免 2.0 插件冲突
+        script.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(AMAP_CONFIG.KEY)}`;
         script.async = true;
         script.onload = () => resolve();
         script.onerror = () => reject(new Error("高德地图脚本加载失败"));

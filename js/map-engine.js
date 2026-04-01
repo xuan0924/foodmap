@@ -348,7 +348,7 @@ function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
  */
 function locateCurrentCityFast(done) {
     const callback = typeof done === 'function' ? done : function () {};
-    if (!mapInstance) {
+    if (!mapInstance || typeof AMap === 'undefined') {
         callback({ ok: false });
         return;
     }
@@ -360,69 +360,68 @@ function locateCurrentCityFast(done) {
         callback(payload);
     };
 
-    const fallbackByCitySearch = function () {
-        AMap.plugin(['AMap.CitySearch'], function () {
-            const cs = new AMap.CitySearch();
-            cs.getLocalCity(function (status, result) {
-                if (status !== 'complete' || !result || !result.city) {
-                    resolveOnce({ ok: false });
-                    return;
-                }
-                const city = String(result.city || '').trim();
-                resolveOnce({
-                    ok: true,
-                    city,
-                    source: 'ip'
-                });
-            });
-        });
-    };
-
-    if (!navigator.geolocation || typeof navigator.geolocation.getCurrentPosition !== 'function') {
-        fallbackByCitySearch();
-        return;
-    }
-
-    const timer = window.setTimeout(function () {
-        fallbackByCitySearch();
-    }, 5000);
-
-    navigator.geolocation.getCurrentPosition(
-        function (pos) {
-            if (resolved) return;
-            window.clearTimeout(timer);
-            const lnglat = [pos.coords.longitude, pos.coords.latitude];
-
-            AMap.plugin(['AMap.Geocoder'], function () {
-                const geo = new AMap.Geocoder();
-                geo.getAddress(lnglat, function (status, result) {
-                    if (resolved) return;
-                    if (status !== 'complete' || !result || !result.regeocode) {
-                        fallbackByCitySearch();
+    AMap.plugin(['AMap.Geolocation', 'AMap.CitySearch'], function () {
+        const fallbackByCitySearch = function () {
+            try {
+                const citySearch = new AMap.CitySearch();
+                citySearch.getLocalCity(function (status, result) {
+                    if (status !== 'complete' || !result || !result.city) {
+                        resolveOnce({ ok: false });
                         return;
                     }
-                    const ac = result.regeocode.addressComponent || {};
-                    const city = (Array.isArray(ac.city) ? ac.city[0] : ac.city) || ac.province || '';
-                    resolveOnce({
-                        ok: true,
-                        city: String(city || '').trim(),
-                        source: 'geolocation',
-                        lnglat
-                    });
+                    const city = String(result.city || '').trim();
+                    resolveOnce({ ok: true, city, source: 'ip' });
                 });
+            } catch (err) {
+                console.error('CitySearch 初始化失败', err);
+                resolveOnce({ ok: false });
+            }
+        };
+
+        try {
+            const geolocation = new AMap.Geolocation({
+                enableHighAccuracy: true,
+                timeout: 5000,
+                panToLocation: true,
+                zoomToAccuracy: true
             });
-        },
-        function () {
-            if (resolved) return;
-            window.clearTimeout(timer);
+
+            if (!geolocation || typeof geolocation.getCurrentPosition !== 'function') {
+                fallbackByCitySearch();
+                return;
+            }
+            window.myGeolocation = geolocation;
+
+            geolocation.getCurrentPosition(function (status, result) {
+                if (resolved) return;
+                if (status === 'complete' && result && result.position) {
+                    const lnglat = [result.position.lng, result.position.lat];
+                    AMap.plugin(['AMap.Geocoder'], function () {
+                        const geo = new AMap.Geocoder();
+                        geo.getAddress(lnglat, function (_s, addr) {
+                            const ac = (addr && addr.regeocode && addr.regeocode.addressComponent) || {};
+                            const city =
+                                (Array.isArray(ac.city) ? ac.city[0] : ac.city) ||
+                                ac.province ||
+                                '';
+                            resolveOnce({
+                                ok: true,
+                                city: String(city || '').trim(),
+                                source: 'geolocation',
+                                lnglat
+                            });
+                        });
+                    });
+                    return;
+                }
+                fallbackByCitySearch();
+            });
+        } catch (e) {
+            console.error('定位插件初始化失败', e);
+            // TypeError 等异常立即回退 IP 城市定位
             fallbackByCitySearch();
-        },
-        {
-            enableHighAccuracy: true,
-            timeout: 5000,
-            maximumAge: 0
         }
-    );
+    });
 }
 
 /**
