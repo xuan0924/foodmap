@@ -4,6 +4,7 @@ let placeSearch = null;
 /** 已通过「定位」确认的高德 PlaceSearch 城市名（空则禁止搜索） */
 let activeSearchCityName = '';
 const SMART_FOOD_HINT_RE = /(店|馆|餐厅|酒楼|大排档|面馆|饭店|火锅|烧烤|烤肉|小吃|咖啡|茶餐厅|寿司|炸鸡|麻辣烫|米线|螺蛳粉|奶茶|甜品)/;
+let locateReqSeq = 0;
 
 function setSearchCityHint(text, isError) {
     const el = document.getElementById('search-city-hint');
@@ -74,13 +75,30 @@ function applySearchCity() {
         }
     }
 
-    MapEngine.focusSearchCity(raw, function (ok) {
+    const reqId = ++locateReqSeq;
+    let finished = false;
+    const finish = function (ok, timedOut) {
+        if (finished || reqId !== locateReqSeq) return;
+        finished = true;
         if (!ok) {
-            // 即使精确定位失败，也保留该城市作为搜索范围
-            setSearchCityHint(`未精确定位到「${raw}」，但已按该城市进行搜索。`, true);
+            if (timedOut) {
+                setSearchCityHint(`定位耗时较长，已按「${raw}」进行搜索。`, true);
+            } else {
+                // 即使精确定位失败，也保留该城市作为搜索范围
+                setSearchCityHint(`未精确定位到「${raw}」，但已按该城市进行搜索。`, true);
+            }
             return;
         }
         setSearchCityHint(`已定位到「${raw}」，可搜索本城餐饮。`);
+    };
+
+    const timer = window.setTimeout(function () {
+        finish(false, true);
+    }, 3000);
+
+    MapEngine.focusSearchCity(raw, function (ok) {
+        window.clearTimeout(timer);
+        finish(!!ok, false);
     });
 }
 
