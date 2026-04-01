@@ -3,8 +3,8 @@
 let placeSearch = null;
 /** 已通过「定位」确认的高德 PlaceSearch 城市名（空则禁止搜索） */
 let activeSearchCityName = '';
+let isSearchCityLocked = false;
 const SMART_FOOD_HINT_RE = /(店|馆|餐厅|酒楼|大排档|面馆|饭店|火锅|烧烤|烤肉|小吃|咖啡|茶餐厅|寿司|炸鸡|麻辣烫|米线|螺蛳粉|奶茶|甜品)/;
-let locateReqSeq = 0;
 
 function setSearchCityHint(text, isError) {
     const el = document.getElementById('search-city-hint');
@@ -31,10 +31,11 @@ function normalizeCityForPlaceSearch(raw) {
 function rebuildPlaceSearch() {
     const map = MapEngine.getMap();
     const city = normalizeCityForPlaceSearch(activeSearchCityName);
+    const cityLocked = !!city && isSearchCityLocked;
 
     placeSearch = new AMap.PlaceSearch({
-        city: city || '',
-        citylimit: !!city,
+        city: cityLocked ? city : '',
+        citylimit: cityLocked,
         type: '餐饮服务',
         pageSize: 10,
         map: map || null,
@@ -53,15 +54,17 @@ function applySearchCity() {
 
     if (!raw) {
         activeSearchCityName = '';
+        isSearchCityLocked = false;
         rebuildPlaceSearch();
         setSearchCityHint('请先输入城市名，再点击「定位」。', true);
         return;
     }
 
-    // 先立即设置搜索城市，避免因定位服务延迟导致“无反应”
+    // 先立即按输入城市生效搜索，不等待地图定位回调
     activeSearchCityName = raw;
+    isSearchCityLocked = true;
     rebuildPlaceSearch();
-    setSearchCityHint(`正在定位到「${raw}」...`);
+    setSearchCityHint(`已切换到「${raw}」，可直接搜索本城餐饮。`);
 
     const map = MapEngine.getMap();
     if (map && typeof map.setCity === 'function') {
@@ -75,30 +78,17 @@ function applySearchCity() {
         }
     }
 
-    const reqId = ++locateReqSeq;
-    let finished = false;
-    const finish = function (ok, timedOut) {
-        if (finished || reqId !== locateReqSeq) return;
-        finished = true;
+    const finish = function (ok) {
         if (!ok) {
-            if (timedOut) {
-                setSearchCityHint(`定位耗时较长，已按「${raw}」进行搜索。`, true);
-            } else {
-                // 即使精确定位失败，也保留该城市作为搜索范围
-                setSearchCityHint(`未精确定位到「${raw}」，但已按该城市进行搜索。`, true);
-            }
+            // 地图没跳转成功也不影响按城市搜索
+            setSearchCityHint(`地图定位较慢/失败，但已按「${raw}」搜索。`, true);
             return;
         }
         setSearchCityHint(`已定位到「${raw}」，可搜索本城餐饮。`);
     };
 
-    const timer = window.setTimeout(function () {
-        finish(false, true);
-    }, 3000);
-
     MapEngine.focusSearchCity(raw, function (ok) {
-        window.clearTimeout(timer);
-        finish(!!ok, false);
+        finish(!!ok);
     });
 }
 
