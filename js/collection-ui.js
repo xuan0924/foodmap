@@ -226,21 +226,10 @@ const CollectionUI = {
     },
 
     refresh() {
-        const loggedIn = typeof isAuthenticated === 'function' ? isAuthenticated() : false;
         const full = getStoredCollection();
         const title = document.querySelector('#collection-list .collection-title');
         if (title) {
             title.textContent = '我的收藏';
-        }
-
-        if (!loggedIn) {
-            hideAllMarkers();
-            this.selectedCityKey = CITY_FILTER_ALL;
-            const bar = document.getElementById('city-pill-bar');
-            const tree = document.getElementById('collection-tree');
-            if (bar) bar.innerHTML = '';
-            if (tree) tree.innerHTML = '<div class="collection-empty">请登录以保存您的私藏地图。</div>';
-            return;
         }
 
         if (!full.length) {

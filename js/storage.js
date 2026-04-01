@@ -1,10 +1,8 @@
-// js/storage.js — 收藏数据：Supabase + 多用户鉴权（按 user_id 隔离）
+// js/storage.js — 收藏数据：Supabase 共享同步（无登录）
 
 const CITY_FILTER_ALL = '__ALL__';
 let collectionCache = [];
 let supabaseClient = null;
-let currentAuthUser = null;
-const authStateListeners = [];
 
 function ensureSupabaseClient() {
     if (supabaseClient) return supabaseClient;
@@ -24,76 +22,18 @@ function getPlacesTableName() {
     return (SUPABASE_CONFIG && SUPABASE_CONFIG.TABLE) || 'places';
 }
 
-function isAuthenticated() {
-    return !!(currentAuthUser && currentAuthUser.id);
-}
-
-function getCurrentAuthUser() {
-    return currentAuthUser;
-}
-
-function registerAuthStateListener(listener) {
-    if (typeof listener === 'function') {
-        authStateListeners.push(listener);
-    }
-}
-
-function notifyAuthStateChanged() {
-    authStateListeners.forEach((fn) => {
-        try {
-            fn(currentAuthUser);
-        } catch (error) {
-            console.error('auth listener error', error);
-        }
-    });
-}
-
 async function initStorageModule() {
     const client = ensureSupabaseClient();
     if (!client) {
         collectionCache = [];
         return;
     }
-    await syncAuthUserFromSession();
-    bindSupabaseAuthEvents();
-    await reloadCollectionForCurrentUser();
-    notifyAuthStateChanged();
+    await reloadCollectionShared();
 }
 
-function bindSupabaseAuthEvents() {
-    const client = ensureSupabaseClient();
-    if (!client || bindSupabaseAuthEvents._bound) return;
-    bindSupabaseAuthEvents._bound = true;
-    client.auth.onAuthStateChange(async function (_event, session) {
-        currentAuthUser = session && session.user ? session.user : null;
-        await reloadCollectionForCurrentUser();
-        notifyAuthStateChanged();
-    });
-}
-
-async function syncAuthUserFromSession() {
+async function reloadCollectionShared() {
     const client = ensureSupabaseClient();
     if (!client) {
-        currentAuthUser = null;
-        return;
-    }
-    try {
-        const { data, error } = await client.auth.getUser();
-        if (error) {
-            console.warn('⚠️ 获取当前登录用户失败：', error);
-            currentAuthUser = null;
-            return;
-        }
-        currentAuthUser = data && data.user ? data.user : null;
-    } catch (error) {
-        console.error('❌ 初始化登录状态失败：', error);
-        currentAuthUser = null;
-    }
-}
-
-async function reloadCollectionForCurrentUser() {
-    const client = ensureSupabaseClient();
-    if (!client || !isAuthenticated()) {
         collectionCache = [];
         if (typeof hideAllMarkers === 'function') hideAllMarkers();
         if (typeof refreshCollectionUI === 'function') refreshCollectionUI();
@@ -102,8 +42,7 @@ async function reloadCollectionForCurrentUser() {
     try {
         const { data, error } = await client
             .from(getPlacesTableName())
-            .select('*')
-            .eq('user_id', currentAuthUser.id);
+            .select('*');
         if (error) {
             console.error('❌ 拉取 Supabase 收藏失败：', error);
             collectionCache = [];
@@ -115,41 +54,6 @@ async function reloadCollectionForCurrentUser() {
         collectionCache = [];
     }
     if (typeof refreshCollectionUI === 'function') refreshCollectionUI();
-}
-
-async function loginWithPassword(email, password) {
-    const client = ensureSupabaseClient();
-    if (!client) throw new Error('Supabase client 不可用');
-    const { error } = await client.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-}
-
-async function signUpWithPassword(email, password, options) {
-    const client = ensureSupabaseClient();
-    if (!client) throw new Error('Supabase client 不可用');
-    const payload = { email, password };
-    if (options && typeof options === 'object') {
-        payload.options = options;
-    }
-    const { error } = await client.auth.signUp(payload);
-    if (error) throw error;
-}
-
-async function loginWithMagicLink(email) {
-    const client = ensureSupabaseClient();
-    if (!client) throw new Error('Supabase client 不可用');
-    const { error } = await client.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: window.location.href }
-    });
-    if (error) throw error;
-}
-
-async function logoutAuthUser() {
-    const client = ensureSupabaseClient();
-    if (!client) return;
-    const { error } = await client.auth.signOut();
-    if (error) throw error;
 }
 
 function normalizePlaceRecord(item) {
@@ -228,22 +132,18 @@ function findCollectionIndex(list, item) {
 }
 
 function saveToCollection(item) {
-    if (!isAuthenticated()) {
-        console.warn('⚠️ 未登录，已阻止收纳。');
-        return;
-    }
     const normalized = normalizePlaceRecord(item);
     const list = collectionCache.slice();
     const idx = findCollectionIndex(list, normalized);
     if (idx >= 0) {
-        list[idx] = { ...list[idx], ...normalized };
-    } else {
-        list.push(normalized);
+        return { ok: false, reason: 'duplicate', item: list[idx] };
     }
+    list.push(normalized);
     collectionCache = list;
     upsertPlaceToSupabase(normalized).catch((error) => {
         console.error('❌ Supabase 保存失败：', error);
     });
+    return { ok: true, reason: 'created', item: normalized };
 }
 
 function removeFromCollection(item) {
@@ -260,11 +160,10 @@ function removeFromCollection(item) {
 
 async function upsertPlaceToSupabase(item) {
     const client = ensureSupabaseClient();
-    if (!client || !isAuthenticated()) return;
+    if (!client) return;
 
     const table = getPlacesTableName();
     const payload = {
-        user_id: currentAuthUser.id,
         name: item.name,
         lng: Number(item.lng),
         lat: Number(item.lat),
@@ -278,7 +177,6 @@ async function upsertPlaceToSupabase(item) {
     const { data: existed, error: queryErr } = await client
         .from(table)
         .select('id')
-        .eq('user_id', currentAuthUser.id)
         .eq('name', item.name)
         .eq('lng', Number(item.lng))
         .eq('lat', Number(item.lat))
@@ -290,8 +188,7 @@ async function upsertPlaceToSupabase(item) {
         const { error: updateErr } = await client
             .from(table)
             .update(payload)
-            .eq('id', existed.id)
-            .eq('user_id', currentAuthUser.id);
+            .eq('id', existed.id);
         if (updateErr) throw updateErr;
         return;
     }
@@ -306,21 +203,19 @@ async function upsertPlaceToSupabase(item) {
 
 async function removePlaceFromSupabase(item) {
     const client = ensureSupabaseClient();
-    if (!client || !isAuthenticated()) return;
+    if (!client) return;
     const table = getPlacesTableName();
     if (item.id != null && String(item.id).length > 0) {
         const { error } = await client
             .from(table)
             .delete()
-            .eq('id', String(item.id))
-            .eq('user_id', currentAuthUser.id);
+            .eq('id', String(item.id));
         if (error) throw error;
         return;
     }
     const { error } = await client
         .from(table)
         .delete()
-        .eq('user_id', currentAuthUser.id)
         .eq('name', item.name)
         .eq('lng', Number(item.lng))
         .eq('lat', Number(item.lat));

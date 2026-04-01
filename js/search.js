@@ -213,10 +213,6 @@ function renderResultList(pois, defaultRemark) {
 }
 
 function handleSelectPoi(poi, categorySelect, categoryNew, remarkInput) {
-    if (typeof isAuthenticated === 'function' && !isAuthenticated()) {
-        alert('请先登录，再保存到私藏地图。');
-        return;
-    }
     const typedCategory = categoryNew ? categoryNew.value.trim() : '';
     const selectedCategory = categorySelect ? categorySelect.value.trim() : '';
     const category = typedCategory || selectedCategory || '我的私藏';
@@ -238,7 +234,14 @@ function handleSelectPoi(poi, categorySelect, categoryNew, remarkInput) {
             remark
         };
 
-        saveToCollection(foodData);
+        const saveResult = saveToCollection(foodData);
+        if (saveResult && saveResult.ok === false && saveResult.reason === 'duplicate') {
+            alert(`「${poi.name}」已经收藏过了`);
+            closeResultList();
+            flyToPosition([lng, lat]);
+            console.log('ℹ️ 已存在收藏，跳过重复写入：', foodData);
+            return;
+        }
         MapEngine.renderMarker(foodData);
         closeResultList();
         refreshCollectionUI();
