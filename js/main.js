@@ -1,12 +1,40 @@
 // js/main.js
-window.onload = function() {
-    console.log("🚀 武汉美食地图一人公司 - 启动中...");
-
-    // 1. 初始化地图底盘
-    initMapEngine('container');
-
-    // 2. 初始化业务搜索模块
-    initSearchModule();
-
-    console.log("💡 准备就绪，请输入关键词开始寻找烟火气。");
+window.onload = async function() {
+    console.log("🚀 全国美食私藏地图 - 启动中...");
+    try {
+        await loadAMapScript();
+        initMapEngine('container');
+        initSearchModule();
+        console.log("💡 准备就绪，全国搜索餐饮 POI，收纳你的私藏。");
+    } catch (error) {
+        console.error("❌ 地图加载失败：", error);
+        showMapLoadError("地图加载失败，请检查 Key / 安全密钥 / 域名白名单配置。");
+    }
 };
+
+function loadAMapScript() {
+    return new Promise((resolve, reject) => {
+        if (window.AMap) {
+            resolve();
+            return;
+        }
+        if (!window.AMAP_CONFIG || !AMAP_CONFIG.KEY) {
+            reject(new Error("缺少 AMAP_CONFIG.KEY"));
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(AMAP_CONFIG.KEY)}&plugin=AMap.PlaceSearch,AMap.Geocoder,AMap.DistrictSearch`;
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error("高德地图脚本加载失败"));
+        document.head.appendChild(script);
+    });
+}
+
+function showMapLoadError(message) {
+    const banner = document.createElement('div');
+    banner.className = 'map-load-error';
+    banner.textContent = message;
+    document.body.appendChild(banner);
+}

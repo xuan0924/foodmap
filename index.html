@@ -2,7 +2,11 @@
 <html lang="zh-CN">
 <head>
     <meta charset="utf-8">
-    <title>武汉地道美食地图 | 一人公司出品</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>美食私藏地图</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <script src="js/config.js"></script>
     <script type="text/javascript">
@@ -11,28 +15,65 @@
 </head>
 <body>
 
-    <button id="drawer-toggle" type="button" aria-label="打开收藏夹">☰ 收藏夹</button>
-
-    <aside id="side-panel" aria-hidden="true">
-        <div class="drawer-header">
-            <h3>🍜 我的美食收藏夹</h3>
+    <header class="gem-topbar" id="gem-topbar">
+        <div class="gem-topbar-inner">
+            <button id="drawer-toggle" class="gem-icon-btn gem-menu-toggle" type="button" aria-label="打开主菜单" aria-expanded="false" aria-controls="side-panel">
+                <svg class="gem-ico gem-ico-menu" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" focusable="false">
+                    <path fill="currentColor" d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                </svg>
+                <svg class="gem-ico gem-ico-close" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" focusable="false">
+                    <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                </svg>
+            </button>
+            <div class="gem-topbar-brand">
+                <span class="gem-topbar-logo" aria-hidden="true">
+                    <svg class="gem-sparkle" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                        <path fill="url(#gemTopbarSparkle)" d="M12 2l1.09 6.26L18 9l-4.91.74L12 16l-1.09-6.26L6 9l4.91-.74L12 2z"/>
+                        <defs>
+                            <linearGradient id="gemTopbarSparkle" x1="6" y1="2" x2="18" y2="16" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#4f8df5"/>
+                                <stop offset="1" stop-color="#8ab4f8"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </span>
+                <span class="gem-topbar-title">美食私藏地图</span>
+            </div>
         </div>
-        <div class="drawer-body">
-            <div id="collection-list"></div>
+    </header>
+
+    <div id="drawer-scrim" class="drawer-scrim" aria-hidden="true"></div>
+
+    <aside id="side-panel" class="gem-side-panel" aria-hidden="true" aria-label="收藏夹">
+        <div class="gem-drawer-head">
+            <h2 class="gem-drawer-title">收藏</h2>
+            <button type="button" class="gem-icon-btn gem-drawer-close" id="drawer-close-btn" aria-label="关闭侧边栏">
+                <svg class="gem-ico" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+                    <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                </svg>
+            </button>
+        </div>
+        <div class="drawer-body gem-drawer-body">
+            <div id="collection-list">
+                <div id="city-pill-bar" class="city-pill-scroll" aria-label="按城市筛选"></div>
+                <h4 class="collection-title">我的收藏</h4>
+                <div id="collection-tree"></div>
+            </div>
         </div>
     </aside>
 
     <div id="search-float">
         <div class="search-box">
-            <input type="text" id="searchInput" placeholder="搜索地道美食，点击收纳...">
+            <input type="text" id="searchInput" placeholder="搜索全国各地的餐厅…" autocomplete="off">
         </div>
         <div id="result-list"></div>
     </div>
 
     <div id="container"></div>
 
-    <script src="https://webapi.amap.com/maps?v=2.0&key=9e003dbbac324e4fbb9df5874b7d8e57&plugin=AMap.PlaceSearch"></script>
     <script src="js/map-engine.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/collection-ui.js"></script>
     <script src="js/search.js"></script>
     <script src="js/main.js"></script>
 </body>

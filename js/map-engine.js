@@ -18,13 +18,17 @@ function initMapEngine(containerId) {
 
     // 初始化地图实例
     mapInstance = new AMap.Map(containerId, {
-        zoom: 13,
+        zoom: AMAP_CONFIG.DEFAULT_ZOOM != null ? AMAP_CONFIG.DEFAULT_ZOOM : 13,
         center: AMAP_CONFIG.CENTER,
         viewMode: '3D',
         mapStyle: 'amap://styles/whitesmoke' // 极简配色，突出美食
     });
 
     console.log("✅ 地图引擎初始化成功，中心点：", AMAP_CONFIG.CENTER);
+    return mapInstance;
+}
+
+function getMapInstance() {
     return mapInstance;
 }
 
@@ -151,3 +155,116 @@ function hideAllMarkers() {
 function getMarkerId(item) {
     return item.id || `${item.name}-${item.lng}-${item.lat}`;
 }
+
+function normalizeDistrictKeyword(cityLabel) {
+    if (!cityLabel || cityLabel === '未知城市') return '';
+    const s = cityLabel.trim();
+    if (/[省市州县区旗]$/.test(s)) return s;
+    return `${s}市`;
+}
+
+/**
+ * 侧边栏点击城市：地图平滑平移到该城市行政中心附近
+ */
+function panMapToCityCenter(cityLabel) {
+    if (!mapInstance || !cityLabel || cityLabel === '未知城市') return;
+
+    const keyword = normalizeDistrictKeyword(cityLabel);
+    if (!keyword) return;
+
+    AMap.plugin('AMap.DistrictSearch', function () {
+        const ds = new AMap.DistrictSearch({
+            subdistrict: 0,
+            extensions: 'base'
+        });
+        ds.search(keyword, function (status, result) {
+            if (status !== 'complete' || !result.districtList || !result.districtList.length) return;
+            const c = result.districtList[0].center;
+            if (!c) return;
+            let lnglat;
+            if (typeof c.getLng === 'function') {
+                lnglat = [c.getLng(), c.getLat()];
+            } else if (c.lng != null && c.lat != null) {
+                lnglat = [c.lng, c.lat];
+            } else if (Array.isArray(c)) {
+                lnglat = c;
+            } else {
+                return;
+            }
+            if (typeof mapInstance.panTo === 'function') {
+                mapInstance.panTo(lnglat);
+            } else {
+                mapInstance.setCenter(lnglat);
+            }
+        });
+    });
+}
+
+/**
+ * 根据收藏点范围调整视野（全国「全部」时使用）
+ */
+function applyFitViewToCollectionItems(items) {
+    if (!mapInstance || !items || !items.length) return;
+    if (items.length === 1) {
+        mapInstance.setZoomAndCenter(14, [items[0].lng, items[0].lat]);
+        return;
+    }
+    let minLng = items[0].lng;
+    let maxLng = items[0].lng;
+    let minLat = items[0].lat;
+    let maxLat = items[0].lat;
+    items.forEach((it) => {
+        minLng = Math.min(minLng, it.lng);
+        maxLng = Math.max(maxLng, it.lng);
+        minLat = Math.min(minLat, it.lat);
+        maxLat = Math.max(maxLat, it.lat);
+    });
+    try {
+        const bounds = new AMap.Bounds([minLng, minLat], [maxLng, maxLat]);
+        mapInstance.setBounds(bounds, false, [48, 48, 48, 48]);
+    } catch (e) {
+        mapInstance.setCenter([(minLng + maxLng) / 2, (minLat + maxLat) / 2]);
+    }
+}
+
+/**
+ * 城市筛选时切换地图视角：优先 setCity，否则行政区检索 + panTo
+ */
+function applyMapViewForCityKey(cityKey) {
+    if (!mapInstance || !cityKey || cityKey === '未知城市') {
+        return;
+    }
+    if (typeof mapInstance.setCity === 'function') {
+        try {
+            mapInstance.setCity(cityKey);
+            return;
+        } catch (e) {
+            /* fall through */
+        }
+    }
+    panMapToCityCenter(cityKey);
+}
+
+/** 对外统一入口：注册并在地图上显示该点（小圆点，无名称标签；展开收藏夹分类时会再套标签） */
+const MapEngine = {
+    getMap() {
+        return getMapInstance();
+    },
+    renderMarker(item) {
+        const marker = renderFoodMarker(item);
+        if (!mapInstance || !marker) return marker;
+        marker.setLabel(null);
+        marker.setMap(mapInstance);
+        visibleMarkerIds.add(getMarkerId(item));
+        return marker;
+    },
+    panToCityCenter(cityLabel) {
+        panMapToCityCenter(cityLabel);
+    },
+    fitMapToCollectionItems(items) {
+        applyFitViewToCollectionItems(items);
+    },
+    setMapViewForCity(cityKey) {
+        applyMapViewForCityKey(cityKey);
+    }
+};
