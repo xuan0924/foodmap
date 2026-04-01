@@ -223,6 +223,26 @@ function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
         callback(false);
         return;
     }
+    let settled = false;
+    const hardTimeout = window.setTimeout(function () {
+        if (mapInstance && typeof mapInstance.setCity === 'function') {
+            try {
+                mapInstance.setCity(keyword);
+                if (typeof mapInstance.setZoom === 'function') mapInstance.setZoom(zoom);
+                finish(true);
+                return;
+            } catch (e) {
+                /* ignore */
+            }
+        }
+        finish(false);
+    }, 3500);
+    function finish(ok) {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(hardTimeout);
+        callback(!!ok);
+    }
 
     function applyCenterFromUnknown(c) {
         if (!c) return null;
@@ -242,33 +262,36 @@ function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
         AMap.plugin('AMap.Geocoder', function () {
             const geo = new AMap.Geocoder({ city: keyword });
             geo.getLocation(keyword, function (status, result) {
+                if (settled) return;
                 if (
                     status !== 'complete' ||
                     !result ||
                     !Array.isArray(result.geocodes) ||
                     !result.geocodes.length
                 ) {
-                    callback(false);
+                    finish(false);
                     return;
                 }
                 const loc = result.geocodes[0].location;
                 const lnglat = applyCenterFromUnknown(loc);
                 if (!lnglat) {
-                    callback(false);
+                    finish(false);
                     return;
                 }
                 mapInstance.setZoomAndCenter(zoom, lnglat);
-                callback(true);
+                finish(true);
             });
         });
     }
 
     AMap.plugin('AMap.DistrictSearch', function () {
+        if (settled) return;
         const ds = new AMap.DistrictSearch({
             subdistrict: 0,
             extensions: 'base'
         });
         ds.search(keyword, function (status, result) {
+            if (settled) return;
             if (status !== 'complete' || !result.districtList || !result.districtList.length) {
                 fallbackByGeocoder();
                 return;
@@ -280,7 +303,7 @@ function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
                 return;
             }
             mapInstance.setZoomAndCenter(zoom, lnglat);
-            callback(true);
+            finish(true);
         });
     });
 }

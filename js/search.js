@@ -63,6 +63,7 @@ function rebuildPlaceSearch() {
 function applySearchCity() {
     const reqId = ++cityLocateRequestSeq;
     const input = document.getElementById('searchCityInput');
+    const applyBtn = document.getElementById('searchCityApply');
     const raw = input ? input.value.trim() : '';
     setSearchCityHint('');
 
@@ -79,8 +80,19 @@ function applySearchCity() {
     isSearchCityLocked = true;
     rebuildPlaceSearch();
     setSearchCityHint(`正在定位到「${raw}」...`);
+    if (applyBtn) {
+        applyBtn.disabled = true;
+        applyBtn.textContent = '定位中...';
+    }
 
+    let finished = false;
     const finish = function (ok) {
+        if (finished || reqId !== cityLocateRequestSeq) return;
+        finished = true;
+        if (applyBtn) {
+            applyBtn.disabled = false;
+            applyBtn.textContent = '定位';
+        }
         if (!ok) {
             setSearchCityHint(`未定位到「${raw}」，请检查城市名后重试。`, true);
             return;
@@ -88,7 +100,12 @@ function applySearchCity() {
         setSearchCityHint(`已定位到「${raw}」，可搜索本城餐饮。`);
     };
 
+    const timeoutId = window.setTimeout(function () {
+        finish(false);
+    }, 4000);
+
     MapEngine.focusSearchCity(raw, function (ok) {
+        window.clearTimeout(timeoutId);
         if (reqId !== cityLocateRequestSeq) return;
         finish(!!ok);
     });
