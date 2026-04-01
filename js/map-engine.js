@@ -328,16 +328,6 @@ function locateCurrentCityFast(done) {
                     return;
                 }
                 const city = String(result.city || '').trim();
-                if (city && typeof mapInstance.setCity === 'function') {
-                    try {
-                        mapInstance.setCity(city);
-                    } catch (e) {
-                        // ignore
-                    }
-                }
-                if (typeof mapInstance.setZoom === 'function') {
-                    mapInstance.setZoom(11);
-                }
                 resolveOnce({
                     ok: true,
                     city,
@@ -361,7 +351,6 @@ function locateCurrentCityFast(done) {
             if (resolved) return;
             window.clearTimeout(timer);
             const lnglat = [pos.coords.longitude, pos.coords.latitude];
-            mapInstance.setZoomAndCenter(12, lnglat);
 
             AMap.plugin('AMap.Geocoder', function () {
                 const geo = new AMap.Geocoder();

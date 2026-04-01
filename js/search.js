@@ -6,6 +6,7 @@ let activeSearchCityName = '';
 let isSearchCityLocked = false;
 const SMART_FOOD_HINT_RE = /(店|馆|餐厅|酒楼|大排档|面馆|饭店|火锅|烧烤|烤肉|小吃|咖啡|茶餐厅|寿司|炸鸡|麻辣烫|米线|螺蛳粉|奶茶|甜品)/;
 let searchCityHintTimer = null;
+let cityLocateRequestSeq = 0;
 
 function setSearchCityHint(text, isError) {
     const el = document.getElementById('search-city-hint');
@@ -60,6 +61,7 @@ function rebuildPlaceSearch() {
  * 读取输入 → 地图跳转 → 重建仅搜索本城的 PlaceSearch
  */
 function applySearchCity() {
+    const reqId = ++cityLocateRequestSeq;
     const input = document.getElementById('searchCityInput');
     const raw = input ? input.value.trim() : '';
     setSearchCityHint('');
@@ -67,6 +69,7 @@ function applySearchCity() {
     if (!raw) {
         // 城市为空时，走自动定位（精准定位超时后自动回退 IP 城市）
         MapEngine.locateCurrentCity(function (result) {
+            if (reqId !== cityLocateRequestSeq) return;
             if (!result || !result.ok || !result.city) {
                 setSearchCityHint('自动定位失败，请手动输入城市。', true);
                 return;
@@ -76,6 +79,21 @@ function applySearchCity() {
             activeSearchCityName = result.city;
             isSearchCityLocked = true;
             rebuildPlaceSearch();
+            if (result.source === 'geolocation' && Array.isArray(result.lnglat)) {
+                if (typeof flyToPosition === 'function') {
+                    flyToPosition(result.lnglat);
+                }
+            } else {
+                const map = MapEngine.getMap();
+                if (map && typeof map.setCity === 'function') {
+                    try {
+                        map.setCity(result.city);
+                        if (typeof map.setZoom === 'function') map.setZoom(11);
+                    } catch (e) {
+                        // ignore
+                    }
+                }
+            }
             if (result.source === 'ip') {
                 setSearchCityHint(`已通过 IP 快速定位到「${result.city}」。`);
             } else {
@@ -113,6 +131,7 @@ function applySearchCity() {
     };
 
     MapEngine.focusSearchCity(raw, function (ok) {
+        if (reqId !== cityLocateRequestSeq) return;
         finish(!!ok);
     });
 }
