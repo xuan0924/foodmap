@@ -13,6 +13,26 @@ function setAuthStatus(text, isError) {
     el.style.color = isError ? '#c5221f' : '';
 }
 
+function isEmailIdentifier(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+}
+
+function encodeUsernameToEmail(username) {
+    const raw = String(username || '').trim();
+    if (!raw) return '';
+    const utf8 = encodeURIComponent(raw).replace(/%/g, '');
+    return `u_${utf8.toLowerCase()}@users.food.local`;
+}
+
+function normalizeAuthIdentifier(inputValue) {
+    const raw = String(inputValue || '').trim();
+    if (!raw) return { email: '', username: '', isEmail: false };
+    if (isEmailIdentifier(raw)) {
+        return { email: raw.toLowerCase(), username: '', isEmail: true };
+    }
+    return { email: encodeUsernameToEmail(raw), username: raw, isEmail: false };
+}
+
 function updateAuthUI(user) {
     const chip = document.getElementById('auth-user-chip');
     const emailEl = document.getElementById('auth-user-email');
@@ -22,8 +42,12 @@ function updateAuthUI(user) {
     const authPanel = document.getElementById('auth-panel');
 
     const isLogin = !!(user && user.email);
+    const nickname =
+        (user && user.user_metadata && user.user_metadata.username) ||
+        (user && user.email) ||
+        '';
     if (chip) chip.hidden = !isLogin;
-    if (emailEl) emailEl.textContent = isLogin ? user.email : '';
+    if (emailEl) emailEl.textContent = isLogin ? nickname : '';
     if (loginTip) loginTip.hidden = isLogin;
     if (collectionList) collectionList.hidden = !isLogin;
     if (ocrPanel) ocrPanel.hidden = !isLogin;
@@ -43,20 +67,21 @@ function initAuthModule() {
     const logoutBtn = document.getElementById('auth-logout-btn');
 
     function getCredentials() {
-        const email = emailInput ? emailInput.value.trim() : '';
+        const identifier = emailInput ? emailInput.value.trim() : '';
         const password = pwdInput ? pwdInput.value : '';
-        return { email, password };
+        return { identifier, password };
     }
 
     if (loginBtn) {
         loginBtn.addEventListener('click', async function () {
-            const { email, password } = getCredentials();
-            if (!email || !password) {
-                setAuthStatus('请输入邮箱和密码。', true);
+            const { identifier, password } = getCredentials();
+            if (!identifier || !password) {
+                setAuthStatus('请输入账号（邮箱或用户名）和密码。', true);
                 return;
             }
             try {
-                await loginWithPassword(email, password);
+                const normalized = normalizeAuthIdentifier(identifier);
+                await loginWithPassword(normalized.email, password);
                 setAuthStatus('登录成功。');
             } catch (error) {
                 setAuthStatus(`登录失败：${error.message || error}`, true);
@@ -66,14 +91,22 @@ function initAuthModule() {
 
     if (signupBtn) {
         signupBtn.addEventListener('click', async function () {
-            const { email, password } = getCredentials();
-            if (!email || !password) {
-                setAuthStatus('注册需要邮箱和密码。', true);
+            const { identifier, password } = getCredentials();
+            if (!identifier || !password) {
+                setAuthStatus('注册需要账号（邮箱或用户名）和密码。', true);
                 return;
             }
             try {
-                await signUpWithPassword(email, password);
-                setAuthStatus('注册成功，请检查邮箱确认链接。');
+                const normalized = normalizeAuthIdentifier(identifier);
+                const options = normalized.username
+                    ? { data: { username: normalized.username } }
+                    : undefined;
+                await signUpWithPassword(normalized.email, password, options);
+                if (normalized.isEmail) {
+                    setAuthStatus('注册成功，请检查邮箱确认链接。');
+                } else {
+                    setAuthStatus(`用户名注册成功：${normalized.username}，可直接用该用户名登录。`);
+                }
             } catch (error) {
                 setAuthStatus(`注册失败：${error.message || error}`, true);
             }
@@ -82,13 +115,17 @@ function initAuthModule() {
 
     if (magicBtn) {
         magicBtn.addEventListener('click', async function () {
-            const { email } = getCredentials();
-            if (!email) {
+            const { identifier } = getCredentials();
+            if (!identifier) {
                 setAuthStatus('请先输入邮箱。', true);
                 return;
             }
+            if (!isEmailIdentifier(identifier)) {
+                setAuthStatus('魔术链接仅支持邮箱，不支持用户名。', true);
+                return;
+            }
             try {
-                await loginWithMagicLink(email);
+                await loginWithMagicLink(identifier.trim().toLowerCase());
                 setAuthStatus('魔术链接已发送，请前往邮箱点击登录。');
             } catch (error) {
                 setAuthStatus(`发送失败：${error.message || error}`, true);

@@ -124,10 +124,14 @@ async function loginWithPassword(email, password) {
     if (error) throw error;
 }
 
-async function signUpWithPassword(email, password) {
+async function signUpWithPassword(email, password, options) {
     const client = ensureSupabaseClient();
     if (!client) throw new Error('Supabase client 不可用');
-    const { error } = await client.auth.signUp({ email, password });
+    const payload = { email, password };
+    if (options && typeof options === 'object') {
+        payload.options = options;
+    }
+    const { error } = await client.auth.signUp(payload);
     if (error) throw error;
 }
 
