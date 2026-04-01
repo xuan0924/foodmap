@@ -214,7 +214,7 @@ function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
     const callback = typeof cb === 'function' ? cb : function () {};
 
     if (!mapInstance || !cityLabel || !String(cityLabel).trim()) {
-        callback(false);
+        callback({ ok: false });
         return;
     }
 
