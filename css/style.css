@@ -68,6 +68,35 @@ body, html {
     min-width: 0;
 }
 
+.auth-user-chip {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 1px solid var(--gem-border);
+    border-radius: 999px;
+    background: var(--gem-surface-dim);
+}
+
+.auth-user-email {
+    max-width: 210px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--gem-text-secondary);
+}
+
+.auth-logout-btn {
+    border: none;
+    background: transparent;
+    color: var(--primary-color);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+}
+
 .gem-topbar-logo {
     display: flex;
     align-items: center;
@@ -196,6 +225,78 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     background: var(--gem-surface-dim);
     display: flex;
     flex-direction: column;
+}
+
+.auth-panel {
+    margin: 12px;
+    padding: 12px;
+    border: 1px solid var(--gem-border);
+    border-radius: 12px;
+    background: var(--gem-surface);
+}
+
+.auth-panel--compact .auth-input,
+.auth-panel--compact .auth-actions {
+    display: none;
+}
+
+.auth-panel--compact .auth-panel-title {
+    margin-bottom: 0;
+}
+
+.auth-panel-title {
+    margin: 0 0 8px;
+    font-size: 14px;
+}
+
+.auth-input {
+    width: 100%;
+    margin-bottom: 8px;
+    border: 1px solid var(--gem-border);
+    border-radius: 8px;
+    padding: 9px 10px;
+    font-size: 13px;
+    font-family: var(--gem-font);
+}
+
+.auth-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.auth-btn {
+    border: none;
+    border-radius: 8px;
+    background: var(--primary-color);
+    color: #fff;
+    padding: 8px 10px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.auth-btn-secondary {
+    background: #2f7e49;
+}
+
+.auth-btn-ghost {
+    background: #5f6368;
+}
+
+.auth-status {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--gem-text-secondary);
+}
+
+.login-empty-tip {
+    margin: 0 12px 8px;
+    padding: 10px 12px;
+    border: 1px dashed #c7ccd1;
+    border-radius: 10px;
+    background: #fff;
+    color: var(--gem-text-secondary);
+    font-size: 12px;
 }
 
 /* —— 搜索区：城市 + 关键词（Gemini 输入条风格） —— */
@@ -911,6 +1012,10 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 
     .gem-topbar-title {
         font-size: 1.125rem;
+    }
+
+    .auth-user-email {
+        max-width: 120px;
     }
 
     .gem-icon-btn {

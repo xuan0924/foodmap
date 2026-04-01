@@ -213,6 +213,10 @@ function renderResultList(pois, defaultRemark) {
 }
 
 function handleSelectPoi(poi, categorySelect, categoryNew, remarkInput) {
+    if (typeof isAuthenticated === 'function' && !isAuthenticated()) {
+        alert('请先登录，再保存到私藏地图。');
+        return;
+    }
     const typedCategory = categoryNew ? categoryNew.value.trim() : '';
     const selectedCategory = categorySelect ? categorySelect.value.trim() : '';
     const category = typedCategory || selectedCategory || '我的私藏';

@@ -4,7 +4,13 @@ window.onload = async function() {
     try {
         await loadAMapScript();
         initMapEngine('container');
+        if (typeof initStorageModule === 'function') {
+            await initStorageModule();
+        }
         initSearchModule();
+        if (typeof initAuthModule === 'function') {
+            initAuthModule();
+        }
         console.log("💡 准备就绪，全国搜索餐饮 POI，收纳你的私藏。");
     } catch (error) {
         console.error("❌ 地图加载失败：", error);

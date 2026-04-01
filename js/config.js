@@ -9,3 +9,11 @@ window.AMAP_CONFIG = {
 };
 /** @type {typeof window.AMAP_CONFIG} 供其它脚本用标识符访问 */
 var AMAP_CONFIG = window.AMAP_CONFIG;
+
+window.SUPABASE_CONFIG = {
+    URL: 'https://yyjcwldberdlcrdwhyuo.supabase.co',
+    ANON_KEY: 'sb_publishable_7uJIM9rpIhD9-31p58MM8A_uvqxHf45',
+    TABLE: 'places'
+};
+/** @type {typeof window.SUPABASE_CONFIG} */
+var SUPABASE_CONFIG = window.SUPABASE_CONFIG;
