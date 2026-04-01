@@ -293,8 +293,8 @@ function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
         return null;
     }
 
-    function fallbackByGeocoder() {
-        AMap.plugin('AMap.Geocoder', function () {
+    AMap.plugin(['AMap.DistrictSearch', 'AMap.Geocoder', 'AMap.CitySearch'], function () {
+        function fallbackByGeocoder() {
             const geo = new AMap.Geocoder({ city: keyword });
             geo.getLocation(keyword, function (status, result) {
                 if (settled) return;
@@ -317,10 +317,8 @@ function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
                 const city = (ac.city || ac.district || ac.province || cityLabel || '').toString().trim();
                 jumpToLnglat(lnglat, { city, source: 'geocoder' });
             });
-        });
-    }
+        }
 
-    AMap.plugin('AMap.DistrictSearch', function () {
         if (settled) return;
         const ds = new AMap.DistrictSearch({
             subdistrict: 0,
@@ -363,7 +361,7 @@ function locateCurrentCityFast(done) {
     };
 
     const fallbackByCitySearch = function () {
-        AMap.plugin('AMap.CitySearch', function () {
+        AMap.plugin(['AMap.CitySearch'], function () {
             const cs = new AMap.CitySearch();
             cs.getLocalCity(function (status, result) {
                 if (status !== 'complete' || !result || !result.city) {
@@ -395,7 +393,7 @@ function locateCurrentCityFast(done) {
             window.clearTimeout(timer);
             const lnglat = [pos.coords.longitude, pos.coords.latitude];
 
-            AMap.plugin('AMap.Geocoder', function () {
+            AMap.plugin(['AMap.Geocoder'], function () {
                 const geo = new AMap.Geocoder();
                 geo.getAddress(lnglat, function (status, result) {
                     if (resolved) return;

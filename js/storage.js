@@ -45,15 +45,33 @@ async function reloadCollectionShared() {
             .select('*');
         if (error) {
             console.error('❌ 拉取 Supabase 收藏失败：', error);
+            handleStorageError(error);
             collectionCache = [];
+            if (typeof refreshCollectionUI === 'function') refreshCollectionUI();
             return;
         }
         collectionCache = Array.isArray(data) ? data.map(normalizePlaceRecord) : [];
     } catch (error) {
         console.error('❌ 初始化收藏缓存失败：', error);
+        handleStorageError(error);
         collectionCache = [];
     }
     if (typeof refreshCollectionUI === 'function') refreshCollectionUI();
+}
+
+function handleStorageError(error) {
+    if (!error) return;
+    const code = String(error.code || '');
+    if (code === 'PGRST205') {
+        const msg = '数据库表未创建';
+        if (typeof showMapLoadError === 'function') {
+            showMapLoadError(msg);
+        }
+        const tree = document.getElementById('collection-tree');
+        if (tree) {
+            tree.innerHTML = `<div class="collection-empty">${msg}</div>`;
+        }
+    }
 }
 
 function normalizePlaceRecord(item) {
