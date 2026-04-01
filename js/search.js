@@ -67,64 +67,22 @@ function applySearchCity() {
     setSearchCityHint('');
 
     if (!raw) {
-        // 城市为空时，走自动定位（精准定位超时后自动回退 IP 城市）
-        MapEngine.locateCurrentCity(function (result) {
-            if (reqId !== cityLocateRequestSeq) return;
-            if (!result || !result.ok || !result.city) {
-                setSearchCityHint('自动定位失败，请手动输入城市。', true);
-                return;
-            }
-            const cityInput = document.getElementById('searchCityInput');
-            if (cityInput) cityInput.value = result.city;
-            activeSearchCityName = result.city;
-            isSearchCityLocked = true;
-            rebuildPlaceSearch();
-            if (result.source === 'geolocation' && Array.isArray(result.lnglat)) {
-                if (typeof flyToPosition === 'function') {
-                    flyToPosition(result.lnglat);
-                }
-            } else {
-                const map = MapEngine.getMap();
-                if (map && typeof map.setCity === 'function') {
-                    try {
-                        map.setCity(result.city);
-                        if (typeof map.setZoom === 'function') map.setZoom(11);
-                    } catch (e) {
-                        // ignore
-                    }
-                }
-            }
-            if (result.source === 'ip') {
-                setSearchCityHint(`已通过 IP 快速定位到「${result.city}」。`);
-            } else {
-                setSearchCityHint(`已定位到「${result.city}」。`);
-            }
-        });
+        activeSearchCityName = '';
+        isSearchCityLocked = false;
+        rebuildPlaceSearch();
+        setSearchCityHint('请先输入城市名，再点击「定位」。', true);
         return;
     }
 
-    // 手动输入城市立即生效，用户可随时纠偏
+    // 手动输入城市后，仅执行精准定位，不再自动/IP覆盖
     activeSearchCityName = raw;
     isSearchCityLocked = true;
     rebuildPlaceSearch();
-    setSearchCityHint(`已切换到「${raw}」，可直接搜索本城餐饮。`);
-
-    const map = MapEngine.getMap();
-    if (map && typeof map.setCity === 'function') {
-        try {
-            map.setCity(raw);
-            if (typeof map.setZoom === 'function') {
-                map.setZoom(11);
-            }
-        } catch (e) {
-            // 忽略，继续走精确行政区定位
-        }
-    }
+    setSearchCityHint(`正在定位到「${raw}」...`);
 
     const finish = function (ok) {
         if (!ok) {
-            // 地图没跳转成功也不影响按城市搜索
-            setSearchCityHint(`地图定位较慢/失败，但已按「${raw}」搜索。`, true);
+            setSearchCityHint(`未定位到「${raw}」，请检查城市名后重试。`, true);
             return;
         }
         setSearchCityHint(`已定位到「${raw}」，可搜索本城餐饮。`);
@@ -144,10 +102,6 @@ function initSearchModule() {
     const applyBtn = document.getElementById('searchCityApply');
     const smartBtn = document.getElementById('smart-parse-btn');
     const ocrBtn = document.getElementById('ocr-parse-btn');
-
-    if (cityInput && AMAP_CONFIG.DEFAULT_SEARCH_CITY) {
-        cityInput.value = AMAP_CONFIG.DEFAULT_SEARCH_CITY;
-    }
 
     rebuildPlaceSearch();
 
@@ -179,9 +133,7 @@ function initSearchModule() {
     bindDrawerToggle();
     refreshCollectionUI();
 
-    if (cityInput && cityInput.value.trim()) {
-        applySearchCity();
-    }
+    // 首次加载不自动定位城市，等待用户手动输入并点击定位
 }
 
 function executeSearch(keyword, options) {
