@@ -3,6 +3,7 @@
 let placeSearch = null;
 /** 已通过「定位」确认的高德 PlaceSearch 城市名（空则禁止搜索） */
 let activeSearchCityName = '';
+const SMART_FOOD_HINT_RE = /(店|馆|餐厅|酒楼|大排档|面馆|饭店|火锅|烧烤|烤肉|小吃|咖啡|茶餐厅|寿司|炸鸡|麻辣烫|米线|螺蛳粉|奶茶|甜品)/;
 
 function setSearchCityHint(text, isError) {
     const el = document.getElementById('search-city-hint');
@@ -75,6 +76,8 @@ function applySearchCity() {
 function initSearchModule() {
     const cityInput = document.getElementById('searchCityInput');
     const applyBtn = document.getElementById('searchCityApply');
+    const smartBtn = document.getElementById('smart-parse-btn');
+    const ocrBtn = document.getElementById('ocr-parse-btn');
 
     if (cityInput && AMAP_CONFIG.DEFAULT_SEARCH_CITY) {
         cityInput.value = AMAP_CONFIG.DEFAULT_SEARCH_CITY;
@@ -100,6 +103,12 @@ function initSearchModule() {
             executeSearch(e.target.value);
         }
     });
+    if (smartBtn) {
+        smartBtn.addEventListener('click', handleSmartClipboardParse);
+    }
+    if (ocrBtn) {
+        ocrBtn.addEventListener('click', handleOcrSearch);
+    }
 
     bindDrawerToggle();
     refreshCollectionUI();
@@ -109,7 +118,8 @@ function initSearchModule() {
     }
 }
 
-function executeSearch(keyword) {
+function executeSearch(keyword, options) {
+    const opts = options || {};
     if (!keyword) return;
 
     if (!activeSearchCityName) {
@@ -130,14 +140,19 @@ function executeSearch(keyword) {
 
     placeSearch.search(keyword, (status, result) => {
         if (status === 'complete' && result.info === 'OK') {
-            renderResultList(result.poiList.pois);
+            const pois = (result.poiList && result.poiList.pois) || [];
+            if (opts.smartMode && pois.length === 1) {
+                confirmAndCollectPoi(pois[0], opts.remark || '');
+                return;
+            }
+            renderResultList(pois, opts.remark || '');
         } else {
-            renderResultList([]);
+            renderResultList([], opts.remark || '');
         }
     });
 }
 
-function renderResultList(pois) {
+function renderResultList(pois, defaultRemark) {
     const listContainer = document.getElementById('result-list');
     listContainer.innerHTML = '';
     listContainer.classList.add('visible');
@@ -162,6 +177,7 @@ function renderResultList(pois) {
                 <select class="poi-category-select">${categoryOptions}</select>
                 <button class="poi-new-toggle" type="button">+ 新建</button>
                 <input class="poi-category-new" type="text" placeholder="输入新分类后收纳">
+                <input class="poi-remark-input" type="text" placeholder="备注（可选）" value="${escapeHtml(defaultRemark || '')}">
                 <button class="poi-save-btn" type="button">收纳</button>
             </div>
         `;
@@ -169,6 +185,7 @@ function renderResultList(pois) {
         const saveBtn = div.querySelector('.poi-save-btn');
         const categorySelect = div.querySelector('.poi-category-select');
         const categoryNew = div.querySelector('.poi-category-new');
+        const remarkInput = div.querySelector('.poi-remark-input');
         const newToggle = div.querySelector('.poi-new-toggle');
         newToggle.addEventListener('click', () => {
             const isOpen = categoryNew.classList.toggle('visible');
@@ -179,7 +196,7 @@ function renderResultList(pois) {
                 categoryNew.value = '';
             }
         });
-        saveBtn.addEventListener('click', () => handleSelectPoi(poi, categorySelect, categoryNew));
+        saveBtn.addEventListener('click', () => handleSelectPoi(poi, categorySelect, categoryNew, remarkInput));
 
         const headBtn = div.querySelector('.poi-item-head');
         if (headBtn) {
@@ -195,10 +212,11 @@ function renderResultList(pois) {
     });
 }
 
-function handleSelectPoi(poi, categorySelect, categoryNew) {
+function handleSelectPoi(poi, categorySelect, categoryNew, remarkInput) {
     const typedCategory = categoryNew ? categoryNew.value.trim() : '';
     const selectedCategory = categorySelect ? categorySelect.value.trim() : '';
     const category = typedCategory || selectedCategory || '我的私藏';
+    const remark = remarkInput ? remarkInput.value.trim() : '';
 
     const lng = poi.location.lng;
     const lat = poi.location.lat;
@@ -212,7 +230,8 @@ function handleSelectPoi(poi, categorySelect, categoryNew) {
             category,
             address: poi.address,
             province: province || '',
-            city: city || ''
+            city: city || '',
+            remark
         };
 
         saveToCollection(foodData);
@@ -222,6 +241,123 @@ function handleSelectPoi(poi, categorySelect, categoryNew) {
         flyToPosition([lng, lat]);
         console.log('💾 已收纳到本地：', foodData);
     });
+}
+
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function normalizeSmartLine(raw) {
+    return String(raw || '')
+        .replace(/https?:\/\/\S+/gi, ' ')
+        .replace(/[【】\[\]（）()]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function extractSmartKeywordAndRemark(text) {
+    const lines = String(text || '')
+        .split(/\n+/)
+        .map((line) => normalizeSmartLine(line))
+        .filter(Boolean);
+    if (!lines.length) return { keyword: '', remark: '' };
+
+    const candidates = lines.filter((line) => line.length >= 2 && line.length <= 28);
+    const keywordLine =
+        candidates.find((line) => SMART_FOOD_HINT_RE.test(line)) ||
+        candidates.find((line) => !/^\d+[\d\s-]*$/.test(line)) ||
+        candidates[0] ||
+        '';
+
+    const remark = lines
+        .filter((line) => line !== keywordLine && line.length >= 4)
+        .slice(0, 2)
+        .join('；')
+        .slice(0, 120);
+
+    return { keyword: keywordLine, remark };
+}
+
+async function handleSmartClipboardParse() {
+    if (!navigator.clipboard || typeof navigator.clipboard.readText !== 'function') {
+        alert('当前环境不支持读取剪贴板，请手动复制后粘贴到搜索框。');
+        return;
+    }
+    try {
+        const text = (await navigator.clipboard.readText()).trim();
+        const parsed = extractSmartKeywordAndRemark(text);
+        if (!parsed.keyword) {
+            alert('剪贴板中未识别到有效店名，请复制更多文字再试。');
+            return;
+        }
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) searchInput.value = parsed.keyword;
+        executeSearch(parsed.keyword, { smartMode: true, remark: parsed.remark });
+    } catch (error) {
+        console.warn('读取剪贴板失败', error);
+        alert('读取剪贴板失败，请检查浏览器权限。');
+    }
+}
+
+function setOcrStatus(text, isError) {
+    const el = document.getElementById('ocr-status');
+    if (!el) return;
+    if (!text) {
+        el.hidden = true;
+        el.textContent = '';
+        return;
+    }
+    el.hidden = false;
+    el.textContent = text;
+    el.style.color = isError ? '#c5221f' : '';
+}
+
+async function handleOcrSearch() {
+    const input = document.getElementById('ocr-image-input');
+    const file = input && input.files && input.files[0];
+    if (!file) {
+        setOcrStatus('请先选择一张截图。', true);
+        return;
+    }
+    if (!window.Tesseract || typeof window.Tesseract.recognize !== 'function') {
+        setOcrStatus('OCR 组件未加载，请刷新页面后重试。', true);
+        return;
+    }
+
+    try {
+        setOcrStatus('正在识别图片文字，请稍候...');
+        const result = await window.Tesseract.recognize(file, 'chi_sim+eng');
+        const text = (result && result.data && result.data.text) || '';
+        const parsed = extractSmartKeywordAndRemark(text);
+        if (!parsed.keyword) {
+            setOcrStatus('未识别到可搜索店名，建议换更清晰截图。', true);
+            return;
+        }
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) searchInput.value = parsed.keyword;
+        setOcrStatus(`识别成功：${parsed.keyword}`);
+        executeSearch(parsed.keyword, { smartMode: true, remark: parsed.remark });
+    } catch (error) {
+        console.error('OCR 识别失败：', error);
+        setOcrStatus('图片识别失败，请重试。', true);
+    }
+}
+
+function confirmAndCollectPoi(poi, remark) {
+    const ok = window.confirm(`仅匹配到 1 个结果：\n${poi.name}\n\n是否直接收纳？`);
+    if (!ok) {
+        renderResultList([poi], remark);
+        return;
+    }
+    const mockCategorySelect = { value: '我的私藏' };
+    const mockCategoryNew = { value: '' };
+    const mockRemarkInput = { value: remark || '' };
+    handleSelectPoi(poi, mockCategorySelect, mockCategoryNew, mockRemarkInput);
 }
 
 function getCategoryOptions() {

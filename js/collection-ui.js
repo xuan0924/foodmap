@@ -145,9 +145,11 @@ const CollectionUI = {
                 shopBtn.className = 'collection-item-main';
                 shopBtn.type = 'button';
                 const sub = [item.province, item.city].filter(Boolean).join(' · ');
+                const remark = (item.remark || '').trim();
                 shopBtn.innerHTML = `
                     <span class="collection-item-name">${item.name}</span>
                     <span class="collection-item-address">${item.address || '地址不详'}${sub ? ` · ${sub}` : ''}</span>
+                    ${remark ? `<span class="collection-item-address">备注：${remark}</span>` : ''}
                 `;
                 shopBtn.addEventListener('click', () => {
                     focusMarker(item);

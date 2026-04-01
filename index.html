@@ -54,6 +54,13 @@
             </button>
         </div>
         <div class="drawer-body gem-drawer-body">
+            <section class="ocr-panel" aria-label="截图识别">
+                <h3 class="ocr-panel-title">截图识别</h3>
+                <p class="ocr-panel-desc">上传截图，自动识别店名并搜索餐饮 POI。</p>
+                <input id="ocr-image-input" class="ocr-image-input" type="file" accept="image/*">
+                <button id="ocr-parse-btn" class="ocr-parse-btn" type="button">识别并搜索</button>
+                <p id="ocr-status" class="ocr-status" hidden role="status"></p>
+            </section>
             <div id="collection-list">
                 <div id="city-pill-bar" class="city-pill-scroll" aria-label="按城市筛选"></div>
                 <h4 class="collection-title">我的收藏</h4>
@@ -83,6 +90,9 @@
             </div>
             <div class="search-box search-box-main">
                 <input type="text" id="searchInput" placeholder="在当前城市搜索餐饮…" autocomplete="off">
+                <button id="smart-parse-btn" class="smart-parse-btn" type="button" aria-label="从剪贴板智能解析店名" title="智能解析剪贴板">
+                    ✨
+                </button>
             </div>
         </div>
         <p id="search-city-hint" class="search-city-hint" hidden role="status"></p>
@@ -92,6 +102,7 @@
     <div id="container"></div>
 
     <script src="js/map-engine.js"></script>
+    <script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/collection-ui.js"></script>
     <script src="js/search.js"></script>
