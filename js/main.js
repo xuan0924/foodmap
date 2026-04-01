@@ -18,7 +18,8 @@ function loadAMapScript() {
             resolve();
             return;
         }
-        if (!window.AMAP_CONFIG || !AMAP_CONFIG.KEY) {
+        // 注意：顶层 const AMAP_CONFIG 不会出现在 window 上，勿用 window.AMAP_CONFIG 判断
+        if (typeof AMAP_CONFIG === 'undefined' || !AMAP_CONFIG.KEY) {
             reject(new Error("缺少 AMAP_CONFIG.KEY"));
             return;
         }
