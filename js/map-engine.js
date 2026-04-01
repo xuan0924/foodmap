@@ -201,6 +201,60 @@ function panMapToCityCenter(cityLabel) {
 }
 
 /**
+ * 搜索前选择城市：行政区定位并缩放到城市级视野
+ * @param {string} cityLabel - 用户输入，如「武汉」「北京市」
+ * @param {number} [zoomLevel=11]
+ * @param {(ok: boolean) => void} [done]
+ */
+function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
+    const cb = typeof zoomLevel === 'function' ? zoomLevel : done;
+    const zoom = typeof zoomLevel === 'number' ? zoomLevel : 11;
+    const callback = typeof cb === 'function' ? cb : function () {};
+
+    if (!mapInstance || !cityLabel || !String(cityLabel).trim()) {
+        callback(false);
+        return;
+    }
+
+    const keyword = normalizeDistrictKeyword(String(cityLabel).trim());
+    if (!keyword) {
+        callback(false);
+        return;
+    }
+
+    AMap.plugin('AMap.DistrictSearch', function () {
+        const ds = new AMap.DistrictSearch({
+            subdistrict: 0,
+            extensions: 'base'
+        });
+        ds.search(keyword, function (status, result) {
+            if (status !== 'complete' || !result.districtList || !result.districtList.length) {
+                callback(false);
+                return;
+            }
+            const c = result.districtList[0].center;
+            if (!c) {
+                callback(false);
+                return;
+            }
+            let lnglat;
+            if (typeof c.getLng === 'function') {
+                lnglat = [c.getLng(), c.getLat()];
+            } else if (c.lng != null && c.lat != null) {
+                lnglat = [c.lng, c.lat];
+            } else if (Array.isArray(c)) {
+                lnglat = c;
+            } else {
+                callback(false);
+                return;
+            }
+            mapInstance.setZoomAndCenter(zoom, lnglat);
+            callback(true);
+        });
+    });
+}
+
+/**
  * 根据收藏点范围调整视野（全国「全部」时使用）
  */
 function applyFitViewToCollectionItems(items) {
@@ -266,5 +320,17 @@ const MapEngine = {
     },
     setMapViewForCity(cityKey) {
         applyMapViewForCityKey(cityKey);
+    },
+    /**
+     * @param {string} cityLabel
+     * @param {number | ((ok: boolean) => void)} [zoomOrDone]
+     * @param {(ok: boolean) => void} [done]
+     */
+    focusSearchCity(cityLabel, zoomOrDone, done) {
+        if (typeof zoomOrDone === 'function') {
+            focusMapOnCityForSearch(cityLabel, 11, zoomOrDone);
+        } else {
+            focusMapOnCityForSearch(cityLabel, zoomOrDone, done);
+        }
     }
 };

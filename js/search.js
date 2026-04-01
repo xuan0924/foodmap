@@ -1,22 +1,98 @@
-// js/search.js — 全国餐饮搜索 + 收纳（逆地理在 storage 中完成）
+// js/search.js — 先选城市定位，再在本城搜索餐饮
 
 let placeSearch = null;
+/** 已通过「定位」确认的高德 PlaceSearch 城市名（空则禁止搜索） */
+let activeSearchCityName = '';
+
+function setSearchCityHint(text, isError) {
+    const el = document.getElementById('search-city-hint');
+    if (!el) return;
+    if (!text) {
+        el.hidden = true;
+        el.textContent = '';
+        return;
+    }
+    el.hidden = false;
+    el.textContent = text;
+    el.classList.toggle('search-city-hint--error', !!isError);
+}
 
 /**
- * 初始化搜索模块（依赖地图实例以启用 autoFitView）
+ * 供高德 PlaceSearch 使用的城市字段（尽量简短市名）
  */
-function initSearchModule() {
+function normalizeCityForPlaceSearch(raw) {
+    const s = String(raw || '').trim();
+    if (!s) return '';
+    return s.replace(/(市|地区|自治州|盟|县)$/, '') || s;
+}
+
+function rebuildPlaceSearch() {
     const map = MapEngine.getMap();
+    const city = normalizeCityForPlaceSearch(activeSearchCityName);
 
     placeSearch = new AMap.PlaceSearch({
-        city: '',
-        citylimit: false,
+        city: city || '',
+        citylimit: !!city,
         type: '餐饮服务',
         pageSize: 10,
         map: map || null,
         panel: null,
         autoFitView: true
     });
+}
+
+/**
+ * 读取输入 → 地图跳转 → 重建仅搜索本城的 PlaceSearch
+ */
+function applySearchCity() {
+    const input = document.getElementById('searchCityInput');
+    const raw = input ? input.value.trim() : '';
+    setSearchCityHint('');
+
+    if (!raw) {
+        activeSearchCityName = '';
+        rebuildPlaceSearch();
+        setSearchCityHint('请先输入城市名，再点击「定位」。', true);
+        return;
+    }
+
+    MapEngine.focusSearchCity(raw, function (ok) {
+        if (!ok) {
+            activeSearchCityName = '';
+            rebuildPlaceSearch();
+            setSearchCityHint('未识别该城市，请尝试「武汉」「北京市」等形式。', true);
+            return;
+        }
+        activeSearchCityName = raw;
+        rebuildPlaceSearch();
+        setSearchCityHint(`已定位到「${raw}」，可搜索本城餐饮。`);
+    });
+}
+
+/**
+ * 初始化搜索模块（依赖地图实例以启用 autoFitView）
+ */
+function initSearchModule() {
+    const cityInput = document.getElementById('searchCityInput');
+    const applyBtn = document.getElementById('searchCityApply');
+
+    if (cityInput && AMAP_CONFIG.DEFAULT_SEARCH_CITY) {
+        cityInput.value = AMAP_CONFIG.DEFAULT_SEARCH_CITY;
+    }
+
+    rebuildPlaceSearch();
+
+    if (applyBtn) {
+        applyBtn.addEventListener('click', () => applySearchCity());
+    }
+    if (cityInput) {
+        cityInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                applySearchCity();
+            }
+        });
+    }
 
     const searchInput = document.getElementById('searchInput');
     searchInput.addEventListener('keypress', (e) => {
@@ -27,12 +103,30 @@ function initSearchModule() {
 
     bindDrawerToggle();
     refreshCollectionUI();
+
+    if (cityInput && cityInput.value.trim()) {
+        applySearchCity();
+    }
 }
 
 function executeSearch(keyword) {
     if (!keyword) return;
 
-    console.log(`🔍 正在全国搜索餐饮: ${keyword}...`);
+    if (!activeSearchCityName) {
+        const listContainer = document.getElementById('result-list');
+        if (listContainer) {
+            listContainer.innerHTML =
+                '<div class="poi-empty">请先在左侧输入城市并点击「定位」，地图跳转到该城市后再搜索。</div>';
+            listContainer.classList.add('visible');
+        }
+        setSearchCityHint('请先完成城市定位。', true);
+        return;
+    }
+
+    setSearchCityHint('');
+
+    const cityLabel = normalizeCityForPlaceSearch(activeSearchCityName);
+    console.log(`🔍 正在【${cityLabel}】搜索餐饮: ${keyword}...`);
 
     placeSearch.search(keyword, (status, result) => {
         if (status === 'complete' && result.info === 'OK') {

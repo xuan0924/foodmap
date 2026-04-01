@@ -198,18 +198,87 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     flex-direction: column;
 }
 
-/* —— 搜索区（Gemini 输入条风格） —— */
+/* —— 搜索区：城市 + 关键词（Gemini 输入条风格） —— */
 #search-float {
     position: fixed;
     top: calc(var(--gem-topbar-h) + 12px);
     left: 50%;
     transform: translateX(-50%);
-    width: min(560px, calc(100vw - 32px));
+    width: min(720px, calc(100vw - 24px));
     z-index: 100;
+}
+
+.search-float-row {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    flex-wrap: nowrap;
+}
+
+.search-city-group {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px 4px 14px;
+    background: var(--gem-surface);
+    border: 1px solid var(--gem-border);
+    border-radius: 28px;
+    box-shadow: 0 1px 3px rgba(60, 64, 67, 0.12), 0 4px 12px rgba(60, 64, 67, 0.06);
+}
+
+.search-city-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gem-text-secondary);
+    white-space: nowrap;
+    user-select: none;
+}
+
+.search-city-input {
+    width: 7.5em;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: var(--gem-font);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--gem-text);
+    padding: 10px 0;
+}
+
+.search-city-input::placeholder {
+    color: var(--gem-text-secondary);
+    font-weight: 400;
+}
+
+.search-city-apply {
+    flex-shrink: 0;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 14px;
+    font-family: var(--gem-font);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary-color);
+    background: var(--gem-hover-primary);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.search-city-apply:hover {
+    background: #d2e3fc;
+    color: #1557b0;
 }
 
 .search-box {
     padding: 0;
+}
+
+.search-box-main {
+    flex: 1;
+    min-width: 0;
 }
 
 #searchInput {
@@ -237,6 +306,37 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 #searchInput:focus {
     border-color: var(--primary-color);
     box-shadow: 0 1px 2px rgba(26, 115, 232, 0.2), 0 0 0 3px rgba(26, 115, 232, 0.15);
+}
+
+.search-city-hint {
+    margin: 8px 4px 0;
+    padding: 0 8px;
+    font-size: 13px;
+    color: var(--gem-text-secondary);
+    font-family: var(--gem-font);
+}
+
+.search-city-hint--error {
+    color: #c5221f;
+}
+
+.search-city-hint[hidden] {
+    display: none !important;
+}
+
+@media (max-width: 560px) {
+    .search-float-row {
+        flex-direction: column;
+    }
+
+    .search-city-group {
+        width: 100%;
+    }
+
+    .search-city-input {
+        flex: 1;
+        width: auto;
+    }
 }
 
 #collection-list {
