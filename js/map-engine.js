@@ -20,7 +20,9 @@ function initMapEngine(containerId) {
     mapInstance = new AMap.Map(containerId, {
         zoom: AMAP_CONFIG.DEFAULT_ZOOM != null ? AMAP_CONFIG.DEFAULT_ZOOM : 13,
         center: AMAP_CONFIG.CENTER,
-        viewMode: '3D',
+        viewMode: '2D',
+        pitchEnable: false,
+        rotationEnable: false,
         mapStyle: 'amap://styles/whitesmoke' // 极简配色，突出美食
     });
 

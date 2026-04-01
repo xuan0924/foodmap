@@ -784,6 +784,14 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     box-shadow: none !important;
 }
 
+/* 隐藏高德默认指南针、3D 控制条（避免出现红色指针状控件） */
+.amap-controlbar,
+.amap-compass {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
 .map-load-error {
     position: fixed;
     top: calc(var(--gem-topbar-h) + 12px);
