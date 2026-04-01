@@ -65,6 +65,38 @@ function initAuthModule() {
     const signupBtn = document.getElementById('auth-signup-btn');
     const magicBtn = document.getElementById('auth-magic-btn');
     const logoutBtn = document.getElementById('auth-logout-btn');
+    let signupFailCount = 0;
+    let signupCooldownTimer = null;
+
+    function clearSignupCooldownTimer() {
+        if (signupCooldownTimer) {
+            window.clearInterval(signupCooldownTimer);
+            signupCooldownTimer = null;
+        }
+    }
+
+    function setSignupButtonIdle() {
+        if (!signupBtn) return;
+        signupBtn.disabled = false;
+        signupBtn.textContent = '注册';
+    }
+
+    function startSignupCooldown(seconds) {
+        if (!signupBtn) return;
+        clearSignupCooldownTimer();
+        let left = Number(seconds) || 60;
+        signupBtn.disabled = true;
+        signupBtn.textContent = `注册(${left}s)`;
+        signupCooldownTimer = window.setInterval(function () {
+            left -= 1;
+            if (left <= 0) {
+                clearSignupCooldownTimer();
+                setSignupButtonIdle();
+                return;
+            }
+            signupBtn.textContent = `注册(${left}s)`;
+        }, 1000);
+    }
 
     function getCredentials() {
         const identifier = emailInput ? emailInput.value.trim() : '';
@@ -91,6 +123,7 @@ function initAuthModule() {
 
     if (signupBtn) {
         signupBtn.addEventListener('click', async function () {
+            if (signupBtn.disabled) return;
             const { identifier, password } = getCredentials();
             if (!identifier || !password) {
                 setAuthStatus('注册需要账号（邮箱或用户名）和密码。', true);
@@ -107,8 +140,16 @@ function initAuthModule() {
                 } else {
                     setAuthStatus(`用户名注册成功：${normalized.username}，可直接用该用户名登录。`);
                 }
+                signupFailCount = 0;
+                clearSignupCooldownTimer();
+                setSignupButtonIdle();
             } catch (error) {
+                signupFailCount += 1;
                 setAuthStatus(`注册失败：${error.message || error}`, true);
+                if (signupFailCount >= 3) {
+                    signupFailCount = 0;
+                    startSignupCooldown(60);
+                }
             }
         });
     }
