@@ -15,20 +15,33 @@ async function initApp() {
         map.on('complete', async function () {
             try {
                 await loadAMapPlugins();
-                if (typeof initLocationModule === 'function') {
-                    initLocationModule();
-                }
+                console.log('✅ 插件加载完毕，绕过精准定位');
+
+                // 1) 初始化搜索（PlaceSearch 已就绪）
                 if (typeof initSearchModule === 'function') {
                     initSearchModule();
                 }
-                // 地图与搜索先可用，数据库数据在后台慢慢加载
+
+                // 2) 稳健 IP 城市定位（仅 CitySearch）
+                const citySearch = new AMap.CitySearch();
+                citySearch.getLocalCity(function (status, result) {
+                    if (status === 'complete' && result && result.info === 'OK' && result.city) {
+                        console.log('📍 城市定位成功:', result.city);
+                        map.setCity(result.city);
+                        if (typeof map.setZoom === 'function') map.setZoom(11);
+                    } else {
+                        console.warn('⚠️ 城市定位超时，显示默认城市');
+                        map.setCity('武汉');
+                        if (typeof map.setZoom === 'function') map.setZoom(11);
+                    }
+                });
+
+                // 3) 后台拉取收藏，不阻塞地图显示
                 if (typeof initStorageModule === 'function') {
                     initStorageModule().catch((err) => {
                         console.error('❌ Supabase 后台加载失败：', err);
                     });
                 }
-                console.log('✅ 高德插件全量安全加载完毕');
-                console.log("💡 准备就绪，全国搜索餐饮 POI，收纳你的私藏。");
             } catch (e) {
                 console.error('❌ 插件初始化致命错误:', e);
                 showMapLoadError("插件加载问题：高德插件未就绪，请刷新重试。");
@@ -79,12 +92,7 @@ function loadAMapPlugins() {
             reject({ code: 'PLUGIN_LOAD_ERROR', message: 'AMap 未加载完成' });
             return;
         }
-        const plugins = [
-            'AMap.PlaceSearch',
-            'AMap.CitySearch',
-            'AMap.Geocoder',
-            'AMap.DistrictSearch'
-        ];
+        const plugins = ['AMap.PlaceSearch', 'AMap.CitySearch'];
         let timeoutId = window.setTimeout(() => {
             reject({ code: 'PLUGIN_LOAD_ERROR', message: '插件加载超时' });
         }, 8000);
