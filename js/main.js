@@ -78,7 +78,6 @@ function loadAMapPlugins() {
         }
         const plugins = [
             'AMap.PlaceSearch',
-            'AMap.Geolocation',
             'AMap.CitySearch',
             'AMap.Geocoder',
             'AMap.DistrictSearch'
@@ -91,7 +90,6 @@ function loadAMapPlugins() {
             window.clearTimeout(timeoutId);
             if (
                 typeof AMap.PlaceSearch !== 'function' ||
-                typeof AMap.Geolocation !== 'function' ||
                 typeof AMap.CitySearch !== 'function'
             ) {
                 reject({ code: 'PLUGIN_LOAD_ERROR', message: '插件构造器不可用' });
