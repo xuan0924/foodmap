@@ -210,7 +210,7 @@ function panMapToCityCenter(cityLabel) {
  */
 function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
     const cb = typeof zoomLevel === 'function' ? zoomLevel : done;
-    const zoom = typeof zoomLevel === 'number' ? zoomLevel : 11;
+    const zoom = typeof zoomLevel === 'number' ? zoomLevel : 14;
     const callback = typeof cb === 'function' ? cb : function () {};
 
     if (!mapInstance || !cityLabel || !String(cityLabel).trim()) {
@@ -220,16 +220,57 @@ function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
 
     const keyword = normalizeDistrictKeyword(String(cityLabel).trim());
     if (!keyword) {
-        callback(false);
+        callback({ ok: false });
         return;
     }
     let settled = false;
+    function finish(ok, payload) {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(hardTimeout);
+        if (ok) {
+            callback({ ok: true, ...(payload || {}) });
+        } else {
+            callback({ ok: false });
+        }
+    }
+
+    function jumpToLnglat(lnglat, meta) {
+        if (!lnglat || !Array.isArray(lnglat) || lnglat.length < 2) {
+            finish(false);
+            return;
+        }
+        // 清理潜在动画/fit 过程，避免视角被拉回
+        if (typeof mapInstance.stopMove === 'function') {
+            try {
+                mapInstance.stopMove();
+            } catch (e) {
+                // ignore
+            }
+        }
+        if (typeof mapInstance.panTo === 'function') {
+            mapInstance.panTo(lnglat);
+        } else {
+            mapInstance.setCenter(lnglat);
+        }
+        if (typeof mapInstance.setZoom === 'function') {
+            mapInstance.setZoom(zoom);
+        }
+        console.log('📍 城市定位成功坐标:', {
+            lng: lnglat[0],
+            lat: lnglat[1],
+            city: meta && meta.city ? meta.city : '',
+            source: meta && meta.source ? meta.source : 'unknown'
+        });
+        finish(true, { lnglat, ...(meta || {}) });
+    }
+
     const hardTimeout = window.setTimeout(function () {
         if (mapInstance && typeof mapInstance.setCity === 'function') {
             try {
                 mapInstance.setCity(keyword);
                 if (typeof mapInstance.setZoom === 'function') mapInstance.setZoom(zoom);
-                finish(true);
+                finish(true, { city: String(cityLabel || '').trim(), source: 'setCity' });
                 return;
             } catch (e) {
                 /* ignore */
@@ -237,12 +278,6 @@ function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
         }
         finish(false);
     }, 3500);
-    function finish(ok) {
-        if (settled) return;
-        settled = true;
-        window.clearTimeout(hardTimeout);
-        callback(!!ok);
-    }
 
     function applyCenterFromUnknown(c) {
         if (!c) return null;
@@ -278,8 +313,9 @@ function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
                     finish(false);
                     return;
                 }
-                mapInstance.setZoomAndCenter(zoom, lnglat);
-                finish(true);
+                const ac = result.geocodes[0] || {};
+                const city = (ac.city || ac.district || ac.province || cityLabel || '').toString().trim();
+                jumpToLnglat(lnglat, { city, source: 'geocoder' });
             });
         });
     }
@@ -302,8 +338,8 @@ function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
                 fallbackByGeocoder();
                 return;
             }
-            mapInstance.setZoomAndCenter(zoom, lnglat);
-            finish(true);
+            const city = (result.districtList[0].name || cityLabel || '').toString().trim();
+            jumpToLnglat(lnglat, { city, source: 'district' });
         });
     });
 }
