@@ -5,6 +5,7 @@ const markerRegistry = new Map();
 const markerDataRegistry = new Map();
 const visibleMarkerIds = new Set();
 let activeMarkerId = null;
+let geolocationInstance = null;
 
 /**
  * 初始化地图引擎
@@ -32,6 +33,28 @@ function initMapEngine(containerId) {
 
 function getMapInstance() {
     return mapInstance;
+}
+
+function initLocationModule() {
+    if (!mapInstance || typeof AMap === 'undefined' || typeof AMap.plugin !== 'function') {
+        return;
+    }
+    AMap.plugin(['AMap.Geolocation', 'AMap.CitySearch'], function () {
+        try {
+            const geolocation = new AMap.Geolocation({
+                enableHighAccuracy: true,
+                timeout: 5000,
+                panToLocation: true,
+                zoomToAccuracy: true
+            });
+            if (geolocation && typeof geolocation.getCurrentPosition === 'function') {
+                geolocationInstance = geolocation;
+                window.myGeolocation = geolocation;
+            }
+        } catch (e) {
+            console.error('定位插件初始化失败', e);
+        }
+    });
 }
 
 /**

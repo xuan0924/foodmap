@@ -4,14 +4,29 @@ window.onload = async function() {
     try {
         await loadAMapScript();
         initMapEngine('container');
+        await loadAMapPlugins();
         if (typeof initStorageModule === 'function') {
             await initStorageModule();
         }
         initSearchModule();
+        if (typeof initLocationModule === 'function') {
+            initLocationModule();
+        }
         console.log("💡 准备就绪，全国搜索餐饮 POI，收纳你的私藏。");
     } catch (error) {
+        const code = error && error.code ? error.code : '';
+        if (code === 'PLUGIN_LOAD_ERROR') {
+            console.error("❌ 插件加载问题：", error);
+            showMapLoadError("插件加载问题：高德插件未就绪，请刷新重试。");
+            return;
+        }
+        if (code === 'PERMISSION_ERROR') {
+            console.error("❌ 权限问题：", error);
+            showMapLoadError("权限问题：请检查 Key / 安全密钥 / 域名白名单。");
+            return;
+        }
         console.error("❌ 地图加载失败：", error);
-        showMapLoadError("地图加载失败，请检查 Key / 安全密钥 / 域名白名单配置。");
+        showMapLoadError("地图加载失败，请检查网络与高德配置。");
     }
 };
 
@@ -32,8 +47,41 @@ function loadAMapScript() {
         script.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(AMAP_CONFIG.KEY)}`;
         script.async = true;
         script.onload = () => resolve();
-        script.onerror = () => reject(new Error("高德地图脚本加载失败"));
+        script.onerror = () => reject({ code: 'PERMISSION_ERROR', message: "高德地图脚本加载失败（可能是权限或白名单问题）" });
         document.head.appendChild(script);
+    });
+}
+
+function loadAMapPlugins() {
+    return new Promise((resolve, reject) => {
+        if (!window.AMap || typeof window.AMap.plugin !== 'function') {
+            reject({ code: 'PLUGIN_LOAD_ERROR', message: 'AMap 未加载完成' });
+            return;
+        }
+        const plugins = [
+            'AMap.PlaceSearch',
+            'AMap.Geolocation',
+            'AMap.CitySearch',
+            'AMap.Geocoder',
+            'AMap.DistrictSearch'
+        ];
+        let timeoutId = window.setTimeout(() => {
+            reject({ code: 'PLUGIN_LOAD_ERROR', message: '插件加载超时' });
+        }, 8000);
+
+        AMap.plugin(plugins, function () {
+            window.clearTimeout(timeoutId);
+            if (
+                typeof AMap.PlaceSearch !== 'function' ||
+                typeof AMap.Geolocation !== 'function' ||
+                typeof AMap.CitySearch !== 'function'
+            ) {
+                reject({ code: 'PLUGIN_LOAD_ERROR', message: '插件构造器不可用' });
+                return;
+            }
+            console.log('✅ 所有插件加载完毕，开始初始化模块...');
+            resolve();
+        });
     });
 }
 
