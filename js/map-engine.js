@@ -382,6 +382,11 @@ function locateCurrentCityFast(done) {
         resolved = true;
         callback(payload);
     };
+    const isSecureContextForGeo =
+        window.isSecureContext ||
+        location.protocol === 'https:' ||
+        location.hostname === 'localhost' ||
+        location.hostname === '127.0.0.1';
 
     AMap.plugin(['AMap.Geolocation', 'AMap.CitySearch'], function () {
         const fallbackByCitySearch = function () {
@@ -400,6 +405,12 @@ function locateCurrentCityFast(done) {
                 resolveOnce({ ok: false });
             }
         };
+
+        if (!isSecureContextForGeo) {
+            console.warn('⚠️ 非 HTTPS 环境，跳过精准定位，直接使用 CitySearch。');
+            fallbackByCitySearch();
+            return;
+        }
 
         try {
             const geolocation = new AMap.Geolocation({

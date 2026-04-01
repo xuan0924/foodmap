@@ -1,18 +1,36 @@
 // js/main.js
-window.onload = async function() {
+window.onload = function () {
+    initApp();
+};
+
+async function initApp() {
     console.log("🚀 全国美食私藏地图 - 启动中...");
     try {
         await loadAMapScript();
-        initMapEngine('container');
-        await loadAMapPlugins();
-        if (typeof initStorageModule === 'function') {
-            await initStorageModule();
+        const map = initMapEngine('container');
+        if (!map || typeof map.on !== 'function') {
+            throw new Error('地图实例初始化失败');
         }
-        initSearchModule();
-        if (typeof initLocationModule === 'function') {
-            initLocationModule();
-        }
-        console.log("💡 准备就绪，全国搜索餐饮 POI，收纳你的私藏。");
+
+        map.on('complete', async function () {
+            try {
+                await loadAMapPlugins();
+                if (typeof initLocationModule === 'function') {
+                    initLocationModule();
+                }
+                if (typeof initStorageModule === 'function') {
+                    await initStorageModule();
+                }
+                if (typeof initSearchModule === 'function') {
+                    initSearchModule();
+                }
+                console.log('✅ 高德插件全量安全加载完毕');
+                console.log("💡 准备就绪，全国搜索餐饮 POI，收纳你的私藏。");
+            } catch (e) {
+                console.error('❌ 插件初始化致命错误:', e);
+                showMapLoadError("插件加载问题：高德插件未就绪，请刷新重试。");
+            }
+        });
     } catch (error) {
         const code = error && error.code ? error.code : '';
         if (code === 'PLUGIN_LOAD_ERROR') {
@@ -28,7 +46,7 @@ window.onload = async function() {
         console.error("❌ 地图加载失败：", error);
         showMapLoadError("地图加载失败，请检查网络与高德配置。");
     }
-};
+}
 
 function loadAMapScript() {
     return new Promise((resolve, reject) => {
