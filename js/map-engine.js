@@ -38,10 +38,40 @@ function initLocationModule() {
     if (!mapInstance || typeof AMap === 'undefined' || typeof AMap.plugin !== 'function') {
         return;
     }
+    const isInsecureHttp =
+        location.protocol === 'http:' &&
+        location.hostname !== 'localhost' &&
+        location.hostname !== '127.0.0.1';
+    if (isInsecureHttp) {
+        mapInstance.setCity('武汉');
+        if (typeof mapInstance.setZoom === 'function') {
+            mapInstance.setZoom(11);
+        }
+        console.warn('⚠️ 当前为 HTTP 访问，已降级到默认城市：武汉');
+        return;
+    }
+
     AMap.plugin(['AMap.CitySearch'], function () {
         const citysearch = new AMap.CitySearch();
+        let settled = false;
+        const fallbackToWuhan = function (reason) {
+            if (settled) return;
+            settled = true;
+            mapInstance.setCity('武汉');
+            if (typeof mapInstance.setZoom === 'function') {
+                mapInstance.setZoom(11);
+            }
+            console.warn('❌ 城市定位失败，默认显示武汉：', reason || 'unknown');
+        };
+        const timer = window.setTimeout(function () {
+            fallbackToWuhan('timeout');
+        }, 3000);
+
         citysearch.getLocalCity(function (status, result) {
+            if (settled) return;
+            window.clearTimeout(timer);
             if (status === 'complete' && result && result.city) {
+                settled = true;
                 mapInstance.setCity(result.city);
                 if (typeof mapInstance.setZoom === 'function') {
                     mapInstance.setZoom(11);
@@ -49,11 +79,7 @@ function initLocationModule() {
                 console.log('✅ IP 定位成功：' + result.city);
                 return;
             }
-            console.log('❌ 城市定位失败，默认显示武汉');
-            mapInstance.setCity('武汉');
-            if (typeof mapInstance.setZoom === 'function') {
-                mapInstance.setZoom(11);
-            }
+            fallbackToWuhan('citysearch-failed');
         });
     });
 }
@@ -376,19 +402,39 @@ function locateCurrentCityFast(done) {
         callback({ ok: false });
         return;
     }
+    const isInsecureHttp =
+        location.protocol === 'http:' &&
+        location.hostname !== 'localhost' &&
+        location.hostname !== '127.0.0.1';
+    if (isInsecureHttp) {
+        callback({ ok: true, city: '武汉', source: 'default-http' });
+        return;
+    }
 
     AMap.plugin(['AMap.CitySearch'], function () {
         const citysearch = new AMap.CitySearch();
+        let settled = false;
+        const finish = function (payload) {
+            if (settled) return;
+            settled = true;
+            window.clearTimeout(timer);
+            callback(payload);
+        };
+        const timer = window.setTimeout(function () {
+            finish({ ok: true, city: '武汉', source: 'default-timeout' });
+        }, 3000);
+
         citysearch.getLocalCity(function (status, result) {
+            if (settled) return;
             if (status === 'complete' && result && result.city) {
-                callback({
+                finish({
                     ok: true,
                     city: String(result.city || '').trim(),
                     source: 'ip'
                 });
                 return;
             }
-            callback({ ok: false });
+            finish({ ok: true, city: '武汉', source: 'default-fallback' });
         });
     });
 }

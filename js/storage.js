@@ -179,63 +179,88 @@ function removeFromCollection(item) {
 async function upsertPlaceToSupabase(item) {
     const client = ensureSupabaseClient();
     if (!client) return;
+    try {
+        const table = getPlacesTableName();
+        const payload = {
+            name: item.name,
+            lng: Number(item.lng),
+            lat: Number(item.lat),
+            category: item.category || '我的私藏',
+            address: item.address || '',
+            province: item.province || '',
+            city: item.city || '',
+            remark: item.remark || ''
+        };
 
-    const table = getPlacesTableName();
-    const payload = {
-        name: item.name,
-        lng: Number(item.lng),
-        lat: Number(item.lat),
-        category: item.category || '我的私藏',
-        address: item.address || '',
-        province: item.province || '',
-        city: item.city || '',
-        remark: item.remark || ''
-    };
-
-    const { data: existed, error: queryErr } = await client
-        .from(table)
-        .select('id')
-        .eq('name', item.name)
-        .eq('lng', Number(item.lng))
-        .eq('lat', Number(item.lat))
-        .limit(1)
-        .maybeSingle();
-    if (queryErr) throw queryErr;
-
-    if (existed && existed.id != null) {
-        const { error: updateErr } = await client
+        const { data: existed, error: queryErr } = await client
             .from(table)
-            .update(payload)
-            .eq('id', existed.id);
-        if (updateErr) throw updateErr;
-        return;
-    }
+            .select('id')
+            .eq('name', item.name)
+            .eq('lng', Number(item.lng))
+            .eq('lat', Number(item.lat))
+            .limit(1)
+            .maybeSingle();
+        if (queryErr) {
+            console.error('❌ Supabase 查询失败：', queryErr);
+            handleStorageError(queryErr);
+            return;
+        }
 
-    const { error: insertErr } = await client
-        .from(table)
-        .insert(payload)
-        .select('id')
-        .maybeSingle();
-    if (insertErr) throw insertErr;
+        if (existed && existed.id != null) {
+            const { error: updateErr } = await client
+                .from(table)
+                .update(payload)
+                .eq('id', existed.id);
+            if (updateErr) {
+                console.error('❌ Supabase 更新失败：', updateErr);
+                handleStorageError(updateErr);
+            }
+            return;
+        }
+
+        const { error: insertErr } = await client
+            .from(table)
+            .insert(payload)
+            .select('id')
+            .maybeSingle();
+        if (insertErr) {
+            console.error('❌ Supabase 新增失败：', insertErr);
+            handleStorageError(insertErr);
+        }
+    } catch (error) {
+        console.error('❌ Supabase 保存异常：', error);
+        handleStorageError(error);
+    }
 }
 
 async function removePlaceFromSupabase(item) {
     const client = ensureSupabaseClient();
     if (!client) return;
-    const table = getPlacesTableName();
-    if (item.id != null && String(item.id).length > 0) {
+    try {
+        const table = getPlacesTableName();
+        if (item.id != null && String(item.id).length > 0) {
+            const { error } = await client
+                .from(table)
+                .delete()
+                .eq('id', String(item.id));
+            if (error) {
+                console.error('❌ Supabase 删除失败：', error);
+                handleStorageError(error);
+            }
+            return;
+        }
         const { error } = await client
             .from(table)
             .delete()
-            .eq('id', String(item.id));
-        if (error) throw error;
-        return;
+            .eq('name', item.name)
+            .eq('lng', Number(item.lng))
+            .eq('lat', Number(item.lat));
+        if (error) {
+            console.error('❌ Supabase 删除失败：', error);
+            handleStorageError(error);
+        }
+    } catch (error) {
+        console.error('❌ Supabase 删除异常：', error);
+        handleStorageError(error);
     }
-    const { error } = await client
-        .from(table)
-        .delete()
-        .eq('name', item.name)
-        .eq('lng', Number(item.lng))
-        .eq('lat', Number(item.lat));
-    if (error) throw error;
 }

@@ -18,11 +18,14 @@ async function initApp() {
                 if (typeof initLocationModule === 'function') {
                     initLocationModule();
                 }
-                if (typeof initStorageModule === 'function') {
-                    await initStorageModule();
-                }
                 if (typeof initSearchModule === 'function') {
                     initSearchModule();
+                }
+                // 地图与搜索先可用，数据库数据在后台慢慢加载
+                if (typeof initStorageModule === 'function') {
+                    initStorageModule().catch((err) => {
+                        console.error('❌ Supabase 后台加载失败：', err);
+                    });
                 }
                 console.log('✅ 高德插件全量安全加载完毕');
                 console.log("💡 准备就绪，全国搜索餐饮 POI，收纳你的私藏。");
