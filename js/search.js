@@ -57,15 +57,29 @@ function applySearchCity() {
         return;
     }
 
+    // 先立即设置搜索城市，避免因定位服务延迟导致“无反应”
+    activeSearchCityName = raw;
+    rebuildPlaceSearch();
+    setSearchCityHint(`正在定位到「${raw}」...`);
+
+    const map = MapEngine.getMap();
+    if (map && typeof map.setCity === 'function') {
+        try {
+            map.setCity(raw);
+            if (typeof map.setZoom === 'function') {
+                map.setZoom(11);
+            }
+        } catch (e) {
+            // 忽略，继续走精确行政区定位
+        }
+    }
+
     MapEngine.focusSearchCity(raw, function (ok) {
         if (!ok) {
-            activeSearchCityName = '';
-            rebuildPlaceSearch();
-            setSearchCityHint('未识别该城市，请尝试「武汉」「北京市」等形式。', true);
+            // 即使精确定位失败，也保留该城市作为搜索范围
+            setSearchCityHint(`未精确定位到「${raw}」，但已按该城市进行搜索。`, true);
             return;
         }
-        activeSearchCityName = raw;
-        rebuildPlaceSearch();
         setSearchCityHint(`已定位到「${raw}」，可搜索本城餐饮。`);
     });
 }
