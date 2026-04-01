@@ -224,6 +224,45 @@ function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
         return;
     }
 
+    function applyCenterFromUnknown(c) {
+        if (!c) return null;
+        if (typeof c.getLng === 'function') {
+            return [c.getLng(), c.getLat()];
+        }
+        if (c.lng != null && c.lat != null) {
+            return [c.lng, c.lat];
+        }
+        if (Array.isArray(c) && c.length >= 2) {
+            return c;
+        }
+        return null;
+    }
+
+    function fallbackByGeocoder() {
+        AMap.plugin('AMap.Geocoder', function () {
+            const geo = new AMap.Geocoder({ city: keyword });
+            geo.getLocation(keyword, function (status, result) {
+                if (
+                    status !== 'complete' ||
+                    !result ||
+                    !Array.isArray(result.geocodes) ||
+                    !result.geocodes.length
+                ) {
+                    callback(false);
+                    return;
+                }
+                const loc = result.geocodes[0].location;
+                const lnglat = applyCenterFromUnknown(loc);
+                if (!lnglat) {
+                    callback(false);
+                    return;
+                }
+                mapInstance.setZoomAndCenter(zoom, lnglat);
+                callback(true);
+            });
+        });
+    }
+
     AMap.plugin('AMap.DistrictSearch', function () {
         const ds = new AMap.DistrictSearch({
             subdistrict: 0,
@@ -231,23 +270,13 @@ function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
         });
         ds.search(keyword, function (status, result) {
             if (status !== 'complete' || !result.districtList || !result.districtList.length) {
-                callback(false);
+                fallbackByGeocoder();
                 return;
             }
             const c = result.districtList[0].center;
-            if (!c) {
-                callback(false);
-                return;
-            }
-            let lnglat;
-            if (typeof c.getLng === 'function') {
-                lnglat = [c.getLng(), c.getLat()];
-            } else if (c.lng != null && c.lat != null) {
-                lnglat = [c.lng, c.lat];
-            } else if (Array.isArray(c)) {
-                lnglat = c;
-            } else {
-                callback(false);
+            const lnglat = applyCenterFromUnknown(c);
+            if (!lnglat) {
+                fallbackByGeocoder();
                 return;
             }
             mapInstance.setZoomAndCenter(zoom, lnglat);
