@@ -205,9 +205,9 @@ function handleSelectPoi(poi, categorySelect, categoryNew) {
 
         saveToCollection(foodData);
         MapEngine.renderMarker(foodData);
-        flyToPosition([lng, lat]);
-        refreshCollectionUI();
         closeResultList();
+        refreshCollectionUI();
+        flyToPosition([lng, lat]);
         console.log('💾 已收纳到本地：', foodData);
     });
 }
@@ -222,6 +222,9 @@ function getCategoryOptions() {
 }
 
 function closeResultList() {
+    if (placeSearch && typeof placeSearch.clear === 'function') {
+        placeSearch.clear();
+    }
     const listContainer = document.getElementById('result-list');
     if (!listContainer) return;
     listContainer.classList.remove('visible');
