@@ -248,19 +248,35 @@ function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
                     !Array.isArray(result.geocodes) ||
                     !result.geocodes.length
                 ) {
-                    callback(false);
+                    fallbackBySetCity();
                     return;
                 }
                 const loc = result.geocodes[0].location;
                 const lnglat = applyCenterFromUnknown(loc);
                 if (!lnglat) {
-                    callback(false);
+                    fallbackBySetCity();
                     return;
                 }
                 mapInstance.setZoomAndCenter(zoom, lnglat);
                 callback(true);
             });
         });
+    }
+
+    function fallbackBySetCity() {
+        if (!mapInstance || typeof mapInstance.setCity !== 'function') {
+            callback(false);
+            return;
+        }
+        try {
+            mapInstance.setCity(keyword);
+            if (typeof mapInstance.setZoom === 'function') {
+                mapInstance.setZoom(zoom);
+            }
+            callback(true);
+        } catch (error) {
+            callback(false);
+        }
     }
 
     AMap.plugin('AMap.DistrictSearch', function () {
