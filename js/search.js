@@ -5,10 +5,15 @@ let placeSearch = null;
 let activeSearchCityName = '';
 let isSearchCityLocked = false;
 const SMART_FOOD_HINT_RE = /(店|馆|餐厅|酒楼|大排档|面馆|饭店|火锅|烧烤|烤肉|小吃|咖啡|茶餐厅|寿司|炸鸡|麻辣烫|米线|螺蛳粉|奶茶|甜品)/;
+let searchCityHintTimer = null;
 
 function setSearchCityHint(text, isError) {
     const el = document.getElementById('search-city-hint');
     if (!el) return;
+    if (searchCityHintTimer) {
+        window.clearTimeout(searchCityHintTimer);
+        searchCityHintTimer = null;
+    }
     if (!text) {
         el.hidden = true;
         el.textContent = '';
@@ -17,6 +22,13 @@ function setSearchCityHint(text, isError) {
     el.hidden = false;
     el.textContent = text;
     el.classList.toggle('search-city-hint--error', !!isError);
+    if (isError) {
+        searchCityHintTimer = window.setTimeout(function () {
+            if (el.textContent === text) {
+                setSearchCityHint('');
+            }
+        }, 3000);
+    }
 }
 
 /**
@@ -53,14 +65,27 @@ function applySearchCity() {
     setSearchCityHint('');
 
     if (!raw) {
-        activeSearchCityName = '';
-        isSearchCityLocked = false;
-        rebuildPlaceSearch();
-        setSearchCityHint('请先输入城市名，再点击「定位」。', true);
+        // 城市为空时，走自动定位（精准定位超时后自动回退 IP 城市）
+        MapEngine.locateCurrentCity(function (result) {
+            if (!result || !result.ok || !result.city) {
+                setSearchCityHint('自动定位失败，请手动输入城市。', true);
+                return;
+            }
+            const cityInput = document.getElementById('searchCityInput');
+            if (cityInput) cityInput.value = result.city;
+            activeSearchCityName = result.city;
+            isSearchCityLocked = true;
+            rebuildPlaceSearch();
+            if (result.source === 'ip') {
+                setSearchCityHint(`已通过 IP 快速定位到「${result.city}」。`);
+            } else {
+                setSearchCityHint(`已定位到「${result.city}」。`);
+            }
+        });
         return;
     }
 
-    // 先立即按输入城市生效搜索，不等待地图定位回调
+    // 手动输入城市立即生效，用户可随时纠偏
     activeSearchCityName = raw;
     isSearchCityLocked = true;
     rebuildPlaceSearch();

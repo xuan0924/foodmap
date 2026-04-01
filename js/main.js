@@ -28,7 +28,7 @@ function loadAMapScript() {
         }
 
         const script = document.createElement('script');
-        script.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(AMAP_CONFIG.KEY)}&plugin=AMap.PlaceSearch,AMap.Geocoder,AMap.DistrictSearch`;
+        script.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(AMAP_CONFIG.KEY)}&plugin=AMap.PlaceSearch,AMap.Geocoder,AMap.DistrictSearch,AMap.CitySearch`;
         script.async = true;
         script.onload = () => resolve();
         script.onerror = () => reject(new Error("高德地图脚本加载失败"));

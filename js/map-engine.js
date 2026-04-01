@@ -302,6 +302,100 @@ function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
 }
 
 /**
+ * 自动定位当前城市：优先浏览器精准定位，5 秒无响应则回退 IP 城市定位
+ * @param {(result: {ok:boolean, city?:string, source?:'geolocation'|'ip', lnglat?:number[]}) => void} done
+ */
+function locateCurrentCityFast(done) {
+    const callback = typeof done === 'function' ? done : function () {};
+    if (!mapInstance) {
+        callback({ ok: false });
+        return;
+    }
+
+    let resolved = false;
+    const resolveOnce = function (payload) {
+        if (resolved) return;
+        resolved = true;
+        callback(payload);
+    };
+
+    const fallbackByCitySearch = function () {
+        AMap.plugin('AMap.CitySearch', function () {
+            const cs = new AMap.CitySearch();
+            cs.getLocalCity(function (status, result) {
+                if (status !== 'complete' || !result || !result.city) {
+                    resolveOnce({ ok: false });
+                    return;
+                }
+                const city = String(result.city || '').trim();
+                if (city && typeof mapInstance.setCity === 'function') {
+                    try {
+                        mapInstance.setCity(city);
+                    } catch (e) {
+                        // ignore
+                    }
+                }
+                if (typeof mapInstance.setZoom === 'function') {
+                    mapInstance.setZoom(11);
+                }
+                resolveOnce({
+                    ok: true,
+                    city,
+                    source: 'ip'
+                });
+            });
+        });
+    };
+
+    if (!navigator.geolocation || typeof navigator.geolocation.getCurrentPosition !== 'function') {
+        fallbackByCitySearch();
+        return;
+    }
+
+    const timer = window.setTimeout(function () {
+        fallbackByCitySearch();
+    }, 5000);
+
+    navigator.geolocation.getCurrentPosition(
+        function (pos) {
+            if (resolved) return;
+            window.clearTimeout(timer);
+            const lnglat = [pos.coords.longitude, pos.coords.latitude];
+            mapInstance.setZoomAndCenter(12, lnglat);
+
+            AMap.plugin('AMap.Geocoder', function () {
+                const geo = new AMap.Geocoder();
+                geo.getAddress(lnglat, function (status, result) {
+                    if (resolved) return;
+                    if (status !== 'complete' || !result || !result.regeocode) {
+                        fallbackByCitySearch();
+                        return;
+                    }
+                    const ac = result.regeocode.addressComponent || {};
+                    const city = (Array.isArray(ac.city) ? ac.city[0] : ac.city) || ac.province || '';
+                    resolveOnce({
+                        ok: true,
+                        city: String(city || '').trim(),
+                        source: 'geolocation',
+                        lnglat
+                    });
+                });
+            });
+        },
+        function () {
+            if (resolved) return;
+            window.clearTimeout(timer);
+            fallbackByCitySearch();
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+        }
+    );
+}
+
+/**
  * 根据收藏点范围调整视野（全国「全部」时使用）
  */
 function applyFitViewToCollectionItems(items) {
@@ -379,5 +473,8 @@ const MapEngine = {
         } else {
             focusMapOnCityForSearch(cityLabel, zoomOrDone, done);
         }
+    },
+    locateCurrentCity(done) {
+        locateCurrentCityFast(done);
     }
 };
