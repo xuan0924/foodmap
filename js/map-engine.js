@@ -393,8 +393,8 @@ function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
 }
 
 /**
- * 自动定位当前城市：优先浏览器精准定位，5 秒无响应则回退 IP 城市定位
- * @param {(result: {ok:boolean, city?:string, source?:'geolocation'|'ip', lnglat?:number[]}) => void} done
+ * 自动定位当前城市：仅 IP 城市（AMap.CitySearch）
+ * @param {(result: {ok:boolean, city?:string, source?:string, lnglat?:number[]}) => void} done
  */
 function locateCurrentCityFast(done) {
     const callback = typeof done === 'function' ? done : function () {};

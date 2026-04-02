@@ -1,6 +1,19 @@
-// js/main.js — 极简稳健：无动态加载脚本、无 AMap.Geolocation；插件由 index.html URL 预载
+// js/main.js — 插件一律经 AMap.plugin 异步就绪后再用；与 map-engine 共用 map 实例
 
 let map;
+
+function fallbackCityWuhan() {
+    try {
+        if (map && typeof map.setCity === 'function') {
+            map.setCity('武汉');
+        }
+        if (map && typeof map.setZoom === 'function') {
+            map.setZoom(11);
+        }
+    } catch (e) {
+        /* 静默 */
+    }
+}
 
 window.onload = function () {
     map = new AMap.Map('container', {
@@ -20,42 +33,63 @@ window.onload = function () {
 };
 
 function startServices() {
-    function ensurePluginsThen(run) {
-        if (typeof AMap.PlaceSearch === 'function' && typeof AMap.CitySearch === 'function') {
-            run();
-            return;
-        }
-        if (typeof AMap !== 'undefined' && typeof AMap.plugin === 'function') {
-            AMap.plugin(['AMap.PlaceSearch', 'AMap.CitySearch'], function () {
-                run();
-            });
-            return;
-        }
-        console.error('❌ 高德插件不可用');
+    if (!window.AMap || typeof AMap.plugin !== 'function') {
+        fallbackCityWuhan();
+        loadCloudData();
+        return;
     }
 
-    ensurePluginsThen(function () {
-        if (typeof initSearchModule === 'function') {
-            initSearchModule();
-        }
+    AMap.plugin(['AMap.PlaceSearch', 'AMap.CitySearch'], function () {
+        try {
+            if (typeof AMap.PlaceSearch !== 'function' || typeof AMap.CitySearch !== 'function') {
+                fallbackCityWuhan();
+                loadCloudData();
+                return;
+            }
 
-        const citySearch = new AMap.CitySearch();
-        citySearch.getLocalCity(function (status, result) {
-            if (status === 'complete' && result && result.info === 'OK' && result.city) {
-                console.log('📍 自动定位到：', result.city);
-                map.setCity(result.city);
-            } else {
-                console.log('⚠️ 定位超时，停留在武汉');
-                map.setCity('武汉');
-                if (typeof map.setZoom === 'function') {
-                    map.setZoom(11);
+            if (typeof initSearchModule === 'function') {
+                try {
+                    initSearchModule();
+                } catch (e) {
+                    console.warn('initSearchModule 异常：', e);
                 }
             }
 
-            if (typeof loadCloudData === 'function') {
+            var citySearch;
+            try {
+                citySearch = new AMap.CitySearch();
+            } catch (e) {
+                console.warn('CitySearch 构造失败：', e);
+                fallbackCityWuhan();
+                loadCloudData();
+                return;
+            }
+
+            try {
+                citySearch.getLocalCity(function (status, result) {
+                    try {
+                        if (status === 'complete' && result && result.info === 'OK' && result.city) {
+                            console.log('📍 自动定位到：', result.city);
+                            map.setCity(result.city);
+                        } else {
+                            fallbackCityWuhan();
+                        }
+                    } catch (e) {
+                        console.warn('CitySearch 回调异常：', e);
+                        fallbackCityWuhan();
+                    }
+                    loadCloudData();
+                });
+            } catch (e) {
+                console.warn('getLocalCity 调用异常：', e);
+                fallbackCityWuhan();
                 loadCloudData();
             }
-        });
+        } catch (e) {
+            console.warn('startServices 异常：', e);
+            fallbackCityWuhan();
+            loadCloudData();
+        }
     });
 }
 

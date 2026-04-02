@@ -159,7 +159,9 @@ function initSearchModule() {
     }
 
     bindDrawerToggle();
-    refreshCollectionUI();
+    if (typeof refreshCollectionUI === 'function') {
+        refreshCollectionUI();
+    }
 
     // 首次加载不自动定位城市，等待用户手动输入并点击定位
 }
@@ -290,7 +292,9 @@ function handleSelectPoi(poi, categorySelect, categoryNew, remarkInput) {
         }
         MapEngine.renderMarker(foodData);
         closeResultList();
-        refreshCollectionUI();
+        if (typeof refreshCollectionUI === 'function') {
+            refreshCollectionUI();
+        }
         flyToPosition([lng, lat]);
         console.log('💾 已收纳到本地：', foodData);
     });
