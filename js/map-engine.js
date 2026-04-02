@@ -486,6 +486,10 @@ function applyMapViewForCityKey(cityKey) {
 
 /** 对外统一入口：注册并在地图上显示该点（小圆点，无名称标签；展开收藏夹分类时会再套标签） */
 const MapEngine = {
+    /** 由 main.js 直接 new AMap.Map 时注入，供搜索/收藏与引擎共用同一实例 */
+    bindMapInstance(m) {
+        mapInstance = m;
+    },
     getMap() {
         return getMapInstance();
     },
