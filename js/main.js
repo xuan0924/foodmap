@@ -36,10 +36,10 @@ async function initApp() {
                     }
                 });
 
-                // 3) 后台拉取收藏，不阻塞地图显示
+                // 3) 后台加载本地收藏（localStorage），不阻塞地图；失败仅打日志
                 if (typeof initStorageModule === 'function') {
-                    initStorageModule().catch((err) => {
-                        console.error('❌ Supabase 后台加载失败：', err);
+                    Promise.resolve(initStorageModule()).catch((err) => {
+                        console.error('❌ 本地收藏加载失败：', err);
                     });
                 }
             } catch (e) {
