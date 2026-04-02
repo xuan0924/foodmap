@@ -1,6 +1,18 @@
 // js/map-engine.js
 // 这是一个“单例”模式的思想，我们定义一个全局变量来持有地图实例
 let mapInstance = null;
+
+/** 2.0 部分版本 setCity 单参时内部会对回调执行 h(null)，导致 “h is not a function”，必须传入完成回调。 */
+function mapSetCitySafe(cityName) {
+    if (!mapInstance || typeof mapInstance.setCity !== 'function') return;
+    if (cityName == null || cityName === '') return;
+    try {
+        mapInstance.setCity(cityName, function () {});
+    } catch (e) {
+        console.warn('setCity 失败:', e);
+    }
+}
+
 const markerRegistry = new Map();
 const markerDataRegistry = new Map();
 const visibleMarkerIds = new Set();
@@ -43,7 +55,7 @@ function initLocationModule() {
         location.hostname !== 'localhost' &&
         location.hostname !== '127.0.0.1';
     if (isInsecureHttp) {
-        mapInstance.setCity('武汉');
+        mapSetCitySafe('武汉');
         if (typeof mapInstance.setZoom === 'function') {
             mapInstance.setZoom(11);
         }
@@ -57,7 +69,7 @@ function initLocationModule() {
         const fallbackToWuhan = function (reason) {
             if (settled) return;
             settled = true;
-            mapInstance.setCity('武汉');
+            mapSetCitySafe('武汉');
             if (typeof mapInstance.setZoom === 'function') {
                 mapInstance.setZoom(11);
             }
@@ -72,7 +84,7 @@ function initLocationModule() {
             window.clearTimeout(timer);
             if (status === 'complete' && result && result.city) {
                 settled = true;
-                mapInstance.setCity(result.city);
+                mapSetCitySafe(result.city);
                 if (typeof mapInstance.setZoom === 'function') {
                     mapInstance.setZoom(11);
                 }
@@ -318,7 +330,7 @@ function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
     const hardTimeout = window.setTimeout(function () {
         if (mapInstance && typeof mapInstance.setCity === 'function') {
             try {
-                mapInstance.setCity(keyword);
+                mapSetCitySafe(keyword);
                 if (typeof mapInstance.setZoom === 'function') mapInstance.setZoom(zoom);
                 finish(true, { city: String(cityLabel || '').trim(), source: 'setCity' });
                 return;
@@ -475,7 +487,7 @@ function applyMapViewForCityKey(cityKey) {
     }
     if (typeof mapInstance.setCity === 'function') {
         try {
-            mapInstance.setCity(cityKey);
+            mapSetCitySafe(cityKey);
             return;
         } catch (e) {
             /* fall through */

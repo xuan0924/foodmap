@@ -2,11 +2,20 @@
 
 let map;
 
+/** 与 map-engine.mapSetCitySafe 同理：setCity 必须带第二参数完成回调，否则 2.0 内部可能报 h is not a function */
+function mapSetCityWithDone(m, cityName) {
+    if (!m || typeof m.setCity !== 'function') return;
+    if (cityName == null || cityName === '') return;
+    try {
+        m.setCity(cityName, function () {});
+    } catch (e) {
+        console.warn('setCity 失败:', e);
+    }
+}
+
 function fallbackCityWuhan() {
     try {
-        if (map && typeof map.setCity === 'function') {
-            map.setCity('武汉');
-        }
+        mapSetCityWithDone(map, '武汉');
         if (map && typeof map.setZoom === 'function') {
             map.setZoom(11);
         }
@@ -70,7 +79,7 @@ function startServices() {
                     try {
                         if (status === 'complete' && result && result.info === 'OK' && result.city) {
                             console.log('📍 自动定位到：', result.city);
-                            map.setCity(result.city);
+                            mapSetCityWithDone(map, result.city);
                         } else {
                             fallbackCityWuhan();
                         }
