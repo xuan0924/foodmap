@@ -1,9 +1,10 @@
-// js/storage.js — 暂时禁用 Supabase，仅使用 localStorage（便于排查地图是否与数据库冲突）
+// js/storage.js — Supabase 同步 + localStorage 备份；失败时仍以本地为准，不阻塞地图
 
 const CITY_FILTER_ALL = '__ALL__';
 const COLLECTION_STORAGE_KEY = 'food_collection_v1';
 
 let collectionCache = [];
+let supabaseClient = null;
 
 function readPlacesFromLocalStorage() {
     const raw = localStorage.getItem(COLLECTION_STORAGE_KEY);
@@ -25,20 +26,56 @@ function writePlacesToLocalStorage(list) {
     }
 }
 
-/** 启动时从本地加载；不访问任何远程数据库 */
+function ensureSupabaseClient() {
+    if (typeof supabase === 'undefined' || typeof supabase.createClient !== 'function') {
+        return null;
+    }
+    if (typeof SUPABASE_CONFIG === 'undefined' || !SUPABASE_CONFIG.URL || !SUPABASE_CONFIG.ANON_KEY) {
+        return null;
+    }
+    if (!supabaseClient) {
+        supabaseClient = supabase.createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.ANON_KEY);
+    }
+    return supabaseClient;
+}
+
+function mergePlacesByGeoKey(remoteList, localList) {
+    const map = new Map();
+    function add(item) {
+        const n = normalizePlaceRecord(item);
+        if (!Number.isFinite(n.lng) || !Number.isFinite(n.lat)) return;
+        const k = buildUniqueKey(n);
+        if (!map.has(k)) map.set(k, n);
+    }
+    (remoteList || []).forEach(add);
+    (localList || []).forEach(add);
+    return Array.from(map.values());
+}
+
+/** 启动：优先拉 Supabase，失败则用本地；不抛错 */
 async function initStorageModule() {
-    try {
-        collectionCache = readPlacesFromLocalStorage();
-        if (typeof refreshCollectionUI === 'function') {
-            refreshCollectionUI();
+    let remote = [];
+    const client = ensureSupabaseClient();
+    if (client) {
+        try {
+            const { data, error } = await client.from(SUPABASE_CONFIG.TABLE).select('*');
+            if (error) {
+                console.warn('⚠️ Supabase 拉取失败，使用本地缓存：', error.message || error);
+            } else if (Array.isArray(data)) {
+                remote = data.map(normalizePlaceRecord);
+            }
+        } catch (e) {
+            console.warn('⚠️ Supabase 异常，使用本地缓存：', e);
         }
-    } catch (error) {
-        console.error('❌ 本地收藏初始化失败：', error);
-        collectionCache = [];
+    }
+    const local = readPlacesFromLocalStorage();
+    collectionCache = remote.length ? mergePlacesByGeoKey(remote, local) : local;
+    writePlacesToLocalStorage(collectionCache);
+    if (typeof refreshCollectionUI === 'function') {
+        refreshCollectionUI();
     }
 }
 
-/** 等价于「读取全部地点」：来自内存缓存（与 localStorage 同步） */
 function getStoredCollection() {
     return collectionCache.slice();
 }
@@ -114,7 +151,44 @@ function findCollectionIndex(list, item) {
     return list.findIndex((record) => buildUniqueKey(record) === key);
 }
 
-/** 保存单条到本地（等价 savePlace） */
+function supabaseInsertRow(normalized) {
+    const client = ensureSupabaseClient();
+    if (!client) return;
+    const row = { ...normalized };
+    if (row.id === undefined || row.id === null || row.id === '') {
+        delete row.id;
+    }
+    client
+        .from(SUPABASE_CONFIG.TABLE)
+        .insert(row)
+        .then(function (res) {
+            if (res.error) {
+                console.warn('⚠️ Supabase 写入失败：', res.error.message || res.error);
+            }
+        })
+        .catch(function (e) {
+            console.warn('⚠️ Supabase 写入异常：', e);
+        });
+}
+
+function supabaseDeleteRow(item) {
+    const client = ensureSupabaseClient();
+    if (!client) return;
+    let q = client.from(SUPABASE_CONFIG.TABLE).delete();
+    if (item.id != null && String(item.id).trim() !== '') {
+        q = q.eq('id', item.id);
+    } else {
+        q = q.eq('name', item.name).eq('lng', item.lng).eq('lat', item.lat);
+    }
+    q.then(function (res) {
+        if (res.error) {
+            console.warn('⚠️ Supabase 删除失败：', res.error.message || res.error);
+        }
+    }).catch(function (e) {
+        console.warn('⚠️ Supabase 删除异常：', e);
+    });
+}
+
 function saveToCollection(item) {
     const normalized = normalizePlaceRecord(item);
     const list = collectionCache.slice();
@@ -125,6 +199,7 @@ function saveToCollection(item) {
     list.push(normalized);
     collectionCache = list;
     writePlacesToLocalStorage(collectionCache);
+    supabaseInsertRow(normalized);
     return { ok: true, reason: 'created', item: normalized };
 }
 
@@ -132,13 +207,9 @@ function removeFromCollection(item) {
     const list = collectionCache.slice();
     const idx = findCollectionIndex(list, item);
     if (idx < 0) return;
+    const removed = list[idx];
     list.splice(idx, 1);
     collectionCache = list;
     writePlacesToLocalStorage(collectionCache);
+    supabaseDeleteRow(removed);
 }
-
-/* —— 以下为 Supabase 相关，已暂时停用 ——
-function ensureSupabaseClient() { ... }
-async function upsertPlaceToSupabase() { ... }
-async function removePlaceFromSupabase() { ... }
-*/

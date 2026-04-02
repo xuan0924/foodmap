@@ -8,10 +8,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
-    <script type="text/javascript">
-        window._AMapSecurityConfig = { securityJsCode: '050e227945533547df0a66b0fdc5928' };
-    </script>
     <script src="js/config.js"></script>
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode:
+                (window.AMAP_CONFIG && window.AMAP_CONFIG.SECURITY_CODE) || '050e227945533547df0a66b0fdc5928'
+        };
+    </script>
 </head>
 <body>
 
@@ -101,10 +104,11 @@
 
     <div id="container"></div>
 
+    <!-- 高德 JS API 1.4.15（KEY 须与 js/config.js 中 AMAP_CONFIG.KEY 一致） -->
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=1.4.15&key=9e003dbbac324e4fbb9df5874b7d8e57&plugin=AMap.PlaceSearch,AMap.CitySearch"></script>
     <script src="js/map-engine.js"></script>
     <script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
-    <!-- Supabase 已暂时禁用，仅用本地 localStorage 测试地图 -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/collection-ui.js"></script>
     <script src="js/search.js"></script>
