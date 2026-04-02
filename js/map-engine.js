@@ -17,12 +17,13 @@ function initMapEngine(containerId) {
     }
 
     // 初始化地图实例
-    // 1.4.15：仅 2D；勿使用 pitchEnable / rotationEnable 等 2.0 专有项
     mapInstance = new AMap.Map(containerId, {
         zoom: AMAP_CONFIG.DEFAULT_ZOOM != null ? AMAP_CONFIG.DEFAULT_ZOOM : 13,
         center: AMAP_CONFIG.CENTER,
         viewMode: '2D',
-        mapStyle: 'amap://styles/whitesmoke'
+        pitchEnable: false,
+        rotationEnable: false,
+        mapStyle: 'amap://styles/whitesmoke' // 极简配色，突出美食
     });
 
     console.log("✅ 地图引擎初始化成功，中心点：", AMAP_CONFIG.CENTER);
@@ -392,8 +393,8 @@ function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
 }
 
 /**
- * 自动定位当前城市：仅 IP 城市（AMap.CitySearch），不使用 AMap.Geolocation
- * @param {(result: {ok:boolean, city?:string, source?:string, lnglat?:number[]}) => void} done
+ * 自动定位当前城市：优先浏览器精准定位，5 秒无响应则回退 IP 城市定位
+ * @param {(result: {ok:boolean, city?:string, source?:'geolocation'|'ip', lnglat?:number[]}) => void} done
  */
 function locateCurrentCityFast(done) {
     const callback = typeof done === 'function' ? done : function () {};
@@ -459,15 +460,7 @@ function applyFitViewToCollectionItems(items) {
     });
     try {
         const bounds = new AMap.Bounds([minLng, minLat], [maxLng, maxLat]);
-        if (typeof mapInstance.setBounds === 'function') {
-            try {
-                mapInstance.setBounds(bounds, false, [48, 48, 48, 48]);
-            } catch (e2) {
-                mapInstance.setBounds(bounds);
-            }
-        } else {
-            mapInstance.setCenter([(minLng + maxLng) / 2, (minLat + maxLat) / 2]);
-        }
+        mapInstance.setBounds(bounds, false, [48, 48, 48, 48]);
     } catch (e) {
         mapInstance.setCenter([(minLng + maxLng) / 2, (minLat + maxLat) / 2]);
     }
