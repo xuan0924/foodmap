@@ -1,32 +1,20 @@
-// js/main.js — 插件一律经 AMap.plugin 异步就绪后再用；与 map-engine 共用 map 实例
+// js/main.js — 插件经 AMap.plugin 加载；移图不用 setCity，统一走 MapEngine.moveMapToCityName（Geocoder）
 
 let map;
-
-/** 与 map-engine.mapSetCitySafe 同理：setCity 必须带第二参数完成回调，否则 2.0 内部可能报 h is not a function */
-function mapSetCityWithDone(m, cityName) {
-    if (!m || typeof m.setCity !== 'function') return;
-    if (cityName == null || cityName === '') return;
-    try {
-        m.setCity(cityName, function () {});
-    } catch (e) {
-        console.warn('setCity 失败:', e);
-    }
-}
 
 function fallbackCityWuhan() {
     applyDefaultCityFromConfig();
 }
 
-/** 不用 IP，按 config 默认城市落图（避免 getLocalCity 误判兰州等） */
+/** 不用 IP、不用 setCity，按 config 默认城市做地理编码移图 */
 function applyDefaultCityFromConfig() {
     try {
         var name =
             typeof AMAP_CONFIG !== 'undefined' && AMAP_CONFIG.DEFAULT_SEARCH_CITY
                 ? String(AMAP_CONFIG.DEFAULT_SEARCH_CITY).trim()
                 : '武汉';
-        mapSetCityWithDone(map, name || '武汉');
-        if (map && typeof map.setZoom === 'function') {
-            map.setZoom(11);
+        if (typeof MapEngine !== 'undefined' && typeof MapEngine.moveMapToCityName === 'function') {
+            MapEngine.moveMapToCityName(name || '武汉', 11);
         }
     } catch (e) {
         /* 静默 */
@@ -111,9 +99,8 @@ function startServices() {
                         }
                         if (cityName) {
                             console.log('📍 IP 城市定位：', cityName, result && result.info ? '(' + result.info + ')' : '');
-                            mapSetCityWithDone(map, cityName);
-                            if (map && typeof map.setZoom === 'function') {
-                                map.setZoom(11);
+                            if (typeof MapEngine !== 'undefined' && typeof MapEngine.moveMapToCityName === 'function') {
+                                MapEngine.moveMapToCityName(cityName, 11);
                             }
                         } else {
                             console.warn('⚠️ getLocalCity 无有效城市，使用配置默认城市。status=', status, 'result=', result);
