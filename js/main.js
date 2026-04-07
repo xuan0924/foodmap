@@ -14,8 +14,17 @@ function mapSetCityWithDone(m, cityName) {
 }
 
 function fallbackCityWuhan() {
+    applyDefaultCityFromConfig();
+}
+
+/** 不用 IP，按 config 默认城市落图（避免 getLocalCity 误判兰州等） */
+function applyDefaultCityFromConfig() {
     try {
-        mapSetCityWithDone(map, '武汉');
+        var name =
+            typeof AMAP_CONFIG !== 'undefined' && AMAP_CONFIG.DEFAULT_SEARCH_CITY
+                ? String(AMAP_CONFIG.DEFAULT_SEARCH_CITY).trim()
+                : '武汉';
+        mapSetCityWithDone(map, name || '武汉');
         if (map && typeof map.setZoom === 'function') {
             map.setZoom(11);
         }
@@ -25,9 +34,13 @@ function fallbackCityWuhan() {
 }
 
 window.onload = function () {
+    var center =
+        typeof AMAP_CONFIG !== 'undefined' && AMAP_CONFIG.DEFAULT_MAP_CENTER
+            ? AMAP_CONFIG.DEFAULT_MAP_CENTER
+            : [114.3, 30.6];
     map = new AMap.Map('container', {
         zoom: 11,
-        center: [114.3, 30.6],
+        center: center,
         viewMode: '2D'
     });
 
@@ -64,6 +77,14 @@ function startServices() {
                 }
             }
 
+            var useIpCity = typeof AMAP_CONFIG !== 'undefined' && AMAP_CONFIG.AUTO_IP_CITY === true;
+            if (!useIpCity) {
+                console.log('ℹ️ 已关闭自动 IP 城市（AUTO_IP_CITY=false），使用默认城市：', AMAP_CONFIG && AMAP_CONFIG.DEFAULT_SEARCH_CITY);
+                applyDefaultCityFromConfig();
+                loadCloudData();
+                return;
+            }
+
             var citySearch;
             try {
                 citySearch = new AMap.CitySearch();
@@ -77,15 +98,30 @@ function startServices() {
             try {
                 citySearch.getLocalCity(function (status, result) {
                     try {
-                        if (status === 'complete' && result && result.info === 'OK' && result.city) {
-                            console.log('📍 自动定位到：', result.city);
-                            mapSetCityWithDone(map, result.city);
+                        var cityName = '';
+                        if (status === 'complete' && result && result.city != null) {
+                            var c = result.city;
+                            if (typeof c === 'string') {
+                                cityName = c.trim();
+                            } else if (Array.isArray(c) && c.length) {
+                                cityName = String(c[0]).trim();
+                            } else if (typeof c === 'object' && (c.name || c.city)) {
+                                cityName = String(c.name || c.city).trim();
+                            }
+                        }
+                        if (cityName) {
+                            console.log('📍 IP 城市定位：', cityName, result && result.info ? '(' + result.info + ')' : '');
+                            mapSetCityWithDone(map, cityName);
+                            if (map && typeof map.setZoom === 'function') {
+                                map.setZoom(11);
+                            }
                         } else {
-                            fallbackCityWuhan();
+                            console.warn('⚠️ getLocalCity 无有效城市，使用配置默认城市。status=', status, 'result=', result);
+                            applyDefaultCityFromConfig();
                         }
                     } catch (e) {
                         console.warn('CitySearch 回调异常：', e);
-                        fallbackCityWuhan();
+                        applyDefaultCityFromConfig();
                     }
                     loadCloudData();
                 });
