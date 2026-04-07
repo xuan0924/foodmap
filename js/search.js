@@ -46,15 +46,14 @@ function rebuildPlaceSearch() {
     const city = normalizeCityForPlaceSearch(activeSearchCityName);
     const cityLocked = !!city && isSearchCityLocked;
 
-    // 勿绑定 map、勿开 autoFitView：否则与 focusSearchCity 同时改视野时，高德内部易触发 setCity 回调 bug（h is not a function）
     placeSearch = new AMap.PlaceSearch({
         city: cityLocked ? city : '',
         citylimit: cityLocked,
         type: '餐饮服务',
         pageSize: 10,
-        map: null,
+        map: map || null,
         panel: null,
-        autoFitView: false
+        autoFitView: true
     });
 }
 
@@ -79,6 +78,7 @@ function applySearchCity() {
     // 手动输入城市后，仅执行精准定位，不再自动/IP覆盖
     activeSearchCityName = raw;
     isSearchCityLocked = true;
+    rebuildPlaceSearch();
     setSearchCityHint(`正在定位到「${raw}」...`);
     if (placeSearch && typeof placeSearch.clear === 'function') {
         placeSearch.clear();
@@ -99,17 +99,16 @@ function applySearchCity() {
         const ok = !!(result && result.ok);
         if (!ok) {
             setSearchCityHint(`未定位到「${raw}」，请检查城市名后重试。`, true);
-            rebuildPlaceSearch();
             return;
         }
         const locatedCity = String(result.city || '').trim();
         if (locatedCity && locatedCity !== raw && input) {
             input.value = locatedCity;
             activeSearchCityName = locatedCity;
+            rebuildPlaceSearch();
         }
         const displayCity = locatedCity || raw;
         setSearchCityHint(`已定位到「${displayCity}」，可搜索本城餐饮。`);
-        rebuildPlaceSearch();
     };
 
     const timeoutId = window.setTimeout(function () {
@@ -160,9 +159,7 @@ function initSearchModule() {
     }
 
     bindDrawerToggle();
-    if (typeof refreshCollectionUI === 'function') {
-        refreshCollectionUI();
-    }
+    refreshCollectionUI();
 
     // 首次加载不自动定位城市，等待用户手动输入并点击定位
 }
@@ -293,9 +290,7 @@ function handleSelectPoi(poi, categorySelect, categoryNew, remarkInput) {
         }
         MapEngine.renderMarker(foodData);
         closeResultList();
-        if (typeof refreshCollectionUI === 'function') {
-            refreshCollectionUI();
-        }
+        refreshCollectionUI();
         flyToPosition([lng, lat]);
         console.log('💾 已收纳到本地：', foodData);
     });

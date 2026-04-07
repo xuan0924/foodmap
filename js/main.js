@@ -1,134 +1,120 @@
-// js/main.js — 插件经 AMap.plugin 加载；移图不用 setCity，统一走 MapEngine.moveMapToCityName（Geocoder）
-
-let map;
-
-function fallbackCityWuhan() {
-    applyDefaultCityFromConfig();
-}
-
-/** 不用 IP、不用 setCity，按 config 默认城市做地理编码移图 */
-function applyDefaultCityFromConfig() {
-    try {
-        var name =
-            typeof AMAP_CONFIG !== 'undefined' && AMAP_CONFIG.DEFAULT_SEARCH_CITY
-                ? String(AMAP_CONFIG.DEFAULT_SEARCH_CITY).trim()
-                : '武汉';
-        if (typeof MapEngine !== 'undefined' && typeof MapEngine.moveMapToCityName === 'function') {
-            MapEngine.moveMapToCityName(name || '武汉', 11);
-        }
-    } catch (e) {
-        /* 静默 */
-    }
-}
-
+// js/main.js
 window.onload = function () {
-    var center =
-        typeof AMAP_CONFIG !== 'undefined' && AMAP_CONFIG.DEFAULT_MAP_CENTER
-            ? AMAP_CONFIG.DEFAULT_MAP_CENTER
-            : [114.3, 30.6];
-    map = new AMap.Map('container', {
-        zoom: 11,
-        center: center,
-        viewMode: '2D'
-    });
-
-    if (typeof MapEngine !== 'undefined' && typeof MapEngine.bindMapInstance === 'function') {
-        MapEngine.bindMapInstance(map);
-    }
-
-    map.on('complete', function () {
-        console.log('✅ 地图底盘已就绪');
-        startServices();
-    });
+    initApp();
 };
 
-function startServices() {
-    if (!window.AMap || typeof AMap.plugin !== 'function') {
-        fallbackCityWuhan();
-        loadCloudData();
-        return;
-    }
-
-    AMap.plugin(['AMap.PlaceSearch', 'AMap.CitySearch'], function () {
-        try {
-            if (typeof AMap.PlaceSearch !== 'function' || typeof AMap.CitySearch !== 'function') {
-                fallbackCityWuhan();
-                loadCloudData();
-                return;
-            }
-
-            if (typeof initSearchModule === 'function') {
-                try {
-                    initSearchModule();
-                } catch (e) {
-                    console.warn('initSearchModule 异常：', e);
-                }
-            }
-
-            var useIpCity = typeof AMAP_CONFIG !== 'undefined' && AMAP_CONFIG.AUTO_IP_CITY === true;
-            if (!useIpCity) {
-                console.log('ℹ️ 已关闭自动 IP 城市（AUTO_IP_CITY=false），使用默认城市：', AMAP_CONFIG && AMAP_CONFIG.DEFAULT_SEARCH_CITY);
-                applyDefaultCityFromConfig();
-                loadCloudData();
-                return;
-            }
-
-            var citySearch;
-            try {
-                citySearch = new AMap.CitySearch();
-            } catch (e) {
-                console.warn('CitySearch 构造失败：', e);
-                fallbackCityWuhan();
-                loadCloudData();
-                return;
-            }
-
-            try {
-                citySearch.getLocalCity(function (status, result) {
-                    try {
-                        var cityName = '';
-                        if (status === 'complete' && result && result.city != null) {
-                            var c = result.city;
-                            if (typeof c === 'string') {
-                                cityName = c.trim();
-                            } else if (Array.isArray(c) && c.length) {
-                                cityName = String(c[0]).trim();
-                            } else if (typeof c === 'object' && (c.name || c.city)) {
-                                cityName = String(c.name || c.city).trim();
-                            }
-                        }
-                        if (cityName) {
-                            console.log('📍 IP 城市定位：', cityName, result && result.info ? '(' + result.info + ')' : '');
-                            if (typeof MapEngine !== 'undefined' && typeof MapEngine.moveMapToCityName === 'function') {
-                                MapEngine.moveMapToCityName(cityName, 11);
-                            }
-                        } else {
-                            console.warn('⚠️ getLocalCity 无有效城市，使用配置默认城市。status=', status, 'result=', result);
-                            applyDefaultCityFromConfig();
-                        }
-                    } catch (e) {
-                        console.warn('CitySearch 回调异常：', e);
-                        applyDefaultCityFromConfig();
-                    }
-                    loadCloudData();
-                });
-            } catch (e) {
-                console.warn('getLocalCity 调用异常：', e);
-                fallbackCityWuhan();
-                loadCloudData();
-            }
-        } catch (e) {
-            console.warn('startServices 异常：', e);
-            fallbackCityWuhan();
-            loadCloudData();
+async function initApp() {
+    console.log("🚀 全国美食私藏地图 - 启动中...");
+    try {
+        await loadAMapScript();
+        const map = initMapEngine('container');
+        if (!map || typeof map.on !== 'function') {
+            throw new Error('地图实例初始化失败');
         }
+
+        map.on('complete', async function () {
+            try {
+                await loadAMapPlugins();
+                console.log('✅ 插件加载完毕，绕过精准定位');
+
+                // 1) 初始化搜索（PlaceSearch 已就绪）
+                if (typeof initSearchModule === 'function') {
+                    initSearchModule();
+                }
+
+                // 2) 稳健 IP 城市定位（仅 CitySearch）
+                const citySearch = new AMap.CitySearch();
+                citySearch.getLocalCity(function (status, result) {
+                    if (status === 'complete' && result && result.info === 'OK' && result.city) {
+                        console.log('📍 城市定位成功:', result.city);
+                        map.setCity(result.city);
+                        if (typeof map.setZoom === 'function') map.setZoom(11);
+                    } else {
+                        console.warn('⚠️ 城市定位超时，显示默认城市');
+                        map.setCity('武汉');
+                        if (typeof map.setZoom === 'function') map.setZoom(11);
+                    }
+                });
+
+                // 3) 后台加载本地收藏（localStorage），不阻塞地图；失败仅打日志
+                if (typeof initStorageModule === 'function') {
+                    Promise.resolve(initStorageModule()).catch((err) => {
+                        console.error('❌ 本地收藏加载失败：', err);
+                    });
+                }
+            } catch (e) {
+                console.error('❌ 插件初始化致命错误:', e);
+                showMapLoadError("插件加载问题：高德插件未就绪，请刷新重试。");
+            }
+        });
+    } catch (error) {
+        const code = error && error.code ? error.code : '';
+        if (code === 'PLUGIN_LOAD_ERROR') {
+            console.error("❌ 插件加载问题：", error);
+            showMapLoadError("插件加载问题：高德插件未就绪，请刷新重试。");
+            return;
+        }
+        if (code === 'PERMISSION_ERROR') {
+            console.error("❌ 权限问题：", error);
+            showMapLoadError("权限问题：请检查 Key / 安全密钥 / 域名白名单。");
+            return;
+        }
+        console.error("❌ 地图加载失败：", error);
+        showMapLoadError("地图加载失败，请检查网络与高德配置。");
+    }
+}
+
+function loadAMapScript() {
+    return new Promise((resolve, reject) => {
+        if (window.AMap) {
+            resolve();
+            return;
+        }
+        // 注意：顶层 const AMAP_CONFIG 不会出现在 window 上，勿用 window.AMAP_CONFIG 判断
+        if (typeof AMAP_CONFIG === 'undefined' || !AMAP_CONFIG.KEY) {
+            reject(new Error("缺少 AMAP_CONFIG.KEY"));
+            return;
+        }
+
+        const script = document.createElement('script');
+        // 不在 URL 中预加载 plugin，统一改为 AMap.plugin(...) 动态加载，避免 2.0 插件冲突
+        script.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(AMAP_CONFIG.KEY)}`;
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject({ code: 'PERMISSION_ERROR', message: "高德地图脚本加载失败（可能是权限或白名单问题）" });
+        document.head.appendChild(script);
     });
 }
 
-function loadCloudData() {
-    if (typeof initStorageModule === 'function') {
-        Promise.resolve(initStorageModule()).catch(function (err) {
-            console.error('❌ 收藏加载失败：', err);
+function loadAMapPlugins() {
+    return new Promise((resolve, reject) => {
+        if (!window.AMap || typeof window.AMap.plugin !== 'function') {
+            reject({ code: 'PLUGIN_LOAD_ERROR', message: 'AMap 未加载完成' });
+            return;
+        }
+        const plugins = ['AMap.PlaceSearch', 'AMap.CitySearch'];
+        let timeoutId = window.setTimeout(() => {
+            reject({ code: 'PLUGIN_LOAD_ERROR', message: '插件加载超时' });
+        }, 8000);
+
+        AMap.plugin(plugins, function () {
+            window.clearTimeout(timeoutId);
+            if (
+                typeof AMap.PlaceSearch !== 'function' ||
+                typeof AMap.CitySearch !== 'function'
+            ) {
+                reject({ code: 'PLUGIN_LOAD_ERROR', message: '插件构造器不可用' });
+                return;
+            }
+            console.log('✅ 所有插件加载完毕，开始初始化模块...');
+            resolve();
         });
-    }
+    });
+}
+
+function showMapLoadError(message) {
+    const banner = document.createElement('div');
+    banner.className = 'map-load-error';
+    banner.textContent = message;
+    document.body.appendChild(banner);
 }

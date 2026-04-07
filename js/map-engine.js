@@ -1,72 +1,6 @@
 // js/map-engine.js
 // 这是一个“单例”模式的思想，我们定义一个全局变量来持有地图实例
 let mapInstance = null;
-
-function parseAmapLngLat(loc) {
-    if (!loc) return null;
-    if (typeof loc.getLng === 'function') {
-        return [loc.getLng(), loc.getLat()];
-    }
-    if (loc.lng != null && loc.lat != null) {
-        return [Number(loc.lng), Number(loc.lat)];
-    }
-    if (Array.isArray(loc) && loc.length >= 2) {
-        return [Number(loc[0]), Number(loc[1])];
-    }
-    return null;
-}
-
-/**
- * 按城市名移图：完全不用 Map#setCity（高德 2.0 在多种情况下仍会报 h is not a function）。
- * @param {(ok: boolean) => void} [done]
- */
-function mapMoveToCityName(cityName, zoomLevel, done) {
-    const zoom = zoomLevel != null ? zoomLevel : 11;
-    const name = String(cityName || '').trim();
-    const cb = typeof done === 'function' ? done : null;
-    if (!mapInstance || !name) {
-        if (cb) cb(false);
-        return;
-    }
-    if (typeof AMap === 'undefined' || typeof AMap.plugin !== 'function') {
-        if (cb) cb(false);
-        return;
-    }
-    AMap.plugin('AMap.Geocoder', function () {
-        try {
-            const geo = new AMap.Geocoder();
-            geo.getLocation(name, function (status, result) {
-                let ok = false;
-                try {
-                    if (status === 'complete' && result && Array.isArray(result.geocodes) && result.geocodes.length) {
-                        const ll = parseAmapLngLat(result.geocodes[0].location);
-                        if (ll) {
-                            mapInstance.setCenter(ll);
-                            if (typeof mapInstance.setZoom === 'function') {
-                                mapInstance.setZoom(zoom);
-                            }
-                            ok = true;
-                        }
-                    }
-                    if (!ok && typeof AMAP_CONFIG !== 'undefined' && AMAP_CONFIG.DEFAULT_MAP_CENTER) {
-                        mapInstance.setCenter(AMAP_CONFIG.DEFAULT_MAP_CENTER);
-                        if (typeof mapInstance.setZoom === 'function') {
-                            mapInstance.setZoom(zoom);
-                        }
-                        ok = true;
-                    }
-                } catch (e) {
-                    console.warn('mapMoveToCityName:', e);
-                }
-                if (cb) cb(ok);
-            });
-        } catch (e) {
-            console.warn('Geocoder:', e);
-            if (cb) cb(false);
-        }
-    });
-}
-
 const markerRegistry = new Map();
 const markerDataRegistry = new Map();
 const visibleMarkerIds = new Set();
@@ -109,7 +43,10 @@ function initLocationModule() {
         location.hostname !== 'localhost' &&
         location.hostname !== '127.0.0.1';
     if (isInsecureHttp) {
-        mapMoveToCityName('武汉', 11);
+        mapInstance.setCity('武汉');
+        if (typeof mapInstance.setZoom === 'function') {
+            mapInstance.setZoom(11);
+        }
         console.warn('⚠️ 当前为 HTTP 访问，已降级到默认城市：武汉');
         return;
     }
@@ -120,7 +57,10 @@ function initLocationModule() {
         const fallbackToWuhan = function (reason) {
             if (settled) return;
             settled = true;
-            mapMoveToCityName('武汉', 11);
+            mapInstance.setCity('武汉');
+            if (typeof mapInstance.setZoom === 'function') {
+                mapInstance.setZoom(11);
+            }
             console.warn('❌ 城市定位失败，默认显示武汉：', reason || 'unknown');
         };
         const timer = window.setTimeout(function () {
@@ -132,7 +72,10 @@ function initLocationModule() {
             window.clearTimeout(timer);
             if (status === 'complete' && result && result.city) {
                 settled = true;
-                mapMoveToCityName(result.city, 11);
+                mapInstance.setCity(result.city);
+                if (typeof mapInstance.setZoom === 'function') {
+                    mapInstance.setZoom(11);
+                }
                 console.log('✅ IP 定位成功：' + result.city);
                 return;
             }
@@ -373,17 +316,17 @@ function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
     }
 
     const hardTimeout = window.setTimeout(function () {
-        if (!mapInstance) {
-            finish(false);
-            return;
-        }
-        mapMoveToCityName(keyword, zoom, function (ok) {
-            if (ok) {
-                finish(true, { city: String(cityLabel || '').trim(), source: 'geocode-timeout' });
-            } else {
-                finish(false);
+        if (mapInstance && typeof mapInstance.setCity === 'function') {
+            try {
+                mapInstance.setCity(keyword);
+                if (typeof mapInstance.setZoom === 'function') mapInstance.setZoom(zoom);
+                finish(true, { city: String(cityLabel || '').trim(), source: 'setCity' });
+                return;
+            } catch (e) {
+                /* ignore */
             }
-        });
+        }
+        finish(false);
     }, 3500);
 
     function applyCenterFromUnknown(c) {
@@ -450,8 +393,8 @@ function focusMapOnCityForSearch(cityLabel, zoomLevel, done) {
 }
 
 /**
- * 自动定位当前城市：仅 IP 城市（AMap.CitySearch）
- * @param {(result: {ok:boolean, city?:string, source?:string, lnglat?:number[]}) => void} done
+ * 自动定位当前城市：优先浏览器精准定位，5 秒无响应则回退 IP 城市定位
+ * @param {(result: {ok:boolean, city?:string, source?:'geolocation'|'ip', lnglat?:number[]}) => void} done
  */
 function locateCurrentCityFast(done) {
     const callback = typeof done === 'function' ? done : function () {};
@@ -524,29 +467,25 @@ function applyFitViewToCollectionItems(items) {
 }
 
 /**
- * 城市筛选时切换地图视角：地理编码移图，失败再行政区 panTo
+ * 城市筛选时切换地图视角：优先 setCity，否则行政区检索 + panTo
  */
 function applyMapViewForCityKey(cityKey) {
     if (!mapInstance || !cityKey || cityKey === '未知城市') {
         return;
     }
-    mapMoveToCityName(cityKey, 11, function (ok) {
-        if (!ok) {
-            panMapToCityCenter(cityKey);
+    if (typeof mapInstance.setCity === 'function') {
+        try {
+            mapInstance.setCity(cityKey);
+            return;
+        } catch (e) {
+            /* fall through */
         }
-    });
+    }
+    panMapToCityCenter(cityKey);
 }
 
 /** 对外统一入口：注册并在地图上显示该点（小圆点，无名称标签；展开收藏夹分类时会再套标签） */
 const MapEngine = {
-    /** 由 main.js 直接 new AMap.Map 时注入，供搜索/收藏与引擎共用同一实例 */
-    bindMapInstance(m) {
-        mapInstance = m;
-    },
-    /** 按城市名移图（不用 setCity，避免 SDK h is not a function） */
-    moveMapToCityName(cityName, zoom, done) {
-        mapMoveToCityName(cityName, zoom, done);
-    },
     getMap() {
         return getMapInstance();
     },
