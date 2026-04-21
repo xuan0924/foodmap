@@ -1,46 +1,14 @@
-// js/group.js — 本地小组创建/加入（6位数字字母代号）
+// js/group.js — 小组创建/加入（邀请码 9 小时轮换）
 (function () {
     const GROUPS_KEY = 'food_groups_v1';
     const ACTIVE_KEY = 'food_active_group_v1';
     const ALPHANUM = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-
-    function getGroups() {
-        const raw = localStorage.getItem(GROUPS_KEY);
-        if (!raw) return {};
-        try {
-            const parsed = JSON.parse(raw);
-            return parsed && typeof parsed === 'object' ? parsed : {};
-        } catch (e) {
-            return {};
-        }
-    }
-
-    function setGroups(groups) {
-        localStorage.setItem(GROUPS_KEY, JSON.stringify(groups));
-    }
-
-    function getActiveCode() {
-        return localStorage.getItem(ACTIVE_KEY) || '';
-    }
-
-    function setActiveCode(code) {
-        localStorage.setItem(ACTIVE_KEY, code);
-    }
+    const CODE_REFRESH_MS = 9 * 60 * 60 * 1000;
 
     function randomCode() {
         let out = '';
-        for (let i = 0; i < 6; i += 1) {
-            out += ALPHANUM[Math.floor(Math.random() * ALPHANUM.length)];
-        }
+        for (let i = 0; i < 6; i += 1) out += ALPHANUM[Math.floor(Math.random() * ALPHANUM.length)];
         return out;
-    }
-
-    function createUniqueCode(groups) {
-        for (let i = 0; i < 20; i += 1) {
-            const code = randomCode();
-            if (!groups[code]) return code;
-        }
-        return randomCode();
     }
 
     function normalizeCode(raw) {
@@ -50,18 +18,70 @@
             .slice(0, 6);
     }
 
-    function refreshGroupLabel() {
-        const label = document.getElementById('group-current-label');
-        const collectionGroup = document.getElementById('collection-group-identity');
-        if (!label) return;
-        const active = getActiveCode();
-        const groups = getGroups();
-        const group = active ? groups[active] : null;
-        const text = group ? `${group.name || '未命名小组'}（${active}）` : '未加入';
-        label.textContent = text;
-        if (collectionGroup) {
-            collectionGroup.textContent = group ? `当前小组：${text}` : '未加入小组';
+    function loadState() {
+        const raw = localStorage.getItem(GROUPS_KEY);
+        let parsed = [];
+        if (raw) {
+            try {
+                parsed = JSON.parse(raw);
+            } catch (e) {
+                parsed = [];
+            }
         }
+
+        // 兼容旧结构：{ CODE: { name... } }
+        if (!Array.isArray(parsed) && parsed && typeof parsed === 'object') {
+            const converted = Object.entries(parsed).map(([code, val]) => ({
+                id: `g_${code}`,
+                name: (val && val.name) || '未命名小组',
+                inviteCode: code,
+                inviteUpdatedAt: (val && val.createdAt) || Date.now(),
+                createdAt: (val && val.createdAt) || Date.now()
+            }));
+            parsed = converted;
+            localStorage.setItem(GROUPS_KEY, JSON.stringify(parsed));
+        }
+
+        if (!Array.isArray(parsed)) parsed = [];
+        return parsed;
+    }
+
+    function saveState(groups) {
+        localStorage.setItem(GROUPS_KEY, JSON.stringify(groups));
+    }
+
+    function getActiveGroupId() {
+        return localStorage.getItem(ACTIVE_KEY) || '';
+    }
+
+    function setActiveGroupId(id) {
+        localStorage.setItem(ACTIVE_KEY, id);
+    }
+
+    function createUniqueInviteCode(groups) {
+        const exists = new Set(groups.map((g) => g.inviteCode));
+        for (let i = 0; i < 30; i += 1) {
+            const candidate = randomCode();
+            if (!exists.has(candidate)) return candidate;
+        }
+        return randomCode();
+    }
+
+    function refreshInviteCodeIfExpired(group, groups) {
+        const now = Date.now();
+        const updatedAt = Number(group.inviteUpdatedAt || 0);
+        if (!group.inviteCode || now - updatedAt >= CODE_REFRESH_MS) {
+            group.inviteCode = createUniqueInviteCode(groups.filter((g) => g.id !== group.id));
+            group.inviteUpdatedAt = now;
+            return true;
+        }
+        return false;
+    }
+
+    function getActiveGroup(groups) {
+        const activeId = getActiveGroupId();
+        if (!activeId) return null;
+        return groups.find((g) => g.id === activeId) || null;
     }
 
     function setStatus(msg, isError) {
@@ -77,42 +97,42 @@
         el.style.color = isError ? '#c5221f' : '#5f6368';
     }
 
-    function afterGroupChanged() {
-        if (typeof refreshCollectionUI === 'function') {
-            refreshCollectionUI();
+    function refreshGroupLabel() {
+        const label = document.getElementById('group-current-label');
+        const collectionGroup = document.getElementById('collection-group-identity');
+        const groups = loadState();
+        const active = getActiveGroup(groups);
+        const text = active ? `${active.name || '未命名小组'}` : '未加入';
+        if (label) label.textContent = text;
+        if (collectionGroup) {
+            collectionGroup.textContent = active ? `当前小组：${active.name}（点击上方小组名查看代号）` : '未加入小组';
         }
+    }
+
+    function afterGroupChanged() {
+        if (typeof refreshCollectionUI === 'function') refreshCollectionUI();
     }
 
     function initGroupUI() {
         const createBtn = document.getElementById('group-create-btn');
         const joinBtn = document.getElementById('group-join-btn');
+        const currentLabel = document.getElementById('group-current-label');
         const createBox = document.getElementById('group-create-box');
-        const createResult = document.getElementById('group-create-result');
         const joinBox = document.getElementById('group-join-box');
+        const codeBox = document.getElementById('group-code-box');
         const codeDisplay = document.getElementById('group-code-display');
         const nameInput = document.getElementById('group-name-input');
         const createConfirm = document.getElementById('group-create-confirm');
         const joinInput = document.getElementById('group-join-input');
         const joinConfirm = document.getElementById('group-join-confirm');
-        if (
-            !createBtn ||
-            !joinBtn ||
-            !createBox ||
-            !createResult ||
-            !joinBox ||
-            !codeDisplay ||
-            !nameInput ||
-            !createConfirm ||
-            !joinInput ||
-            !joinConfirm
-        ) return;
+        if (!createBtn || !joinBtn || !currentLabel || !createBox || !joinBox || !codeBox || !codeDisplay || !nameInput || !createConfirm || !joinInput || !joinConfirm) return;
 
         refreshGroupLabel();
 
         createBtn.addEventListener('click', () => {
             createBox.hidden = false;
-            createResult.hidden = true;
             joinBox.hidden = true;
+            codeBox.hidden = true;
             nameInput.value = '';
             setStatus('');
             nameInput.focus();
@@ -121,6 +141,7 @@
         joinBtn.addEventListener('click', () => {
             createBox.hidden = true;
             joinBox.hidden = false;
+            codeBox.hidden = true;
             setStatus('');
             joinInput.focus();
         });
@@ -131,15 +152,21 @@
                 setStatus('请先输入小组名称。', true);
                 return;
             }
-            const groups = getGroups();
-            const code = createUniqueCode(groups);
-            groups[code] = { code, name, createdAt: Date.now() };
-            setGroups(groups);
-            setActiveCode(code);
+            const groups = loadState();
+            const group = {
+                id: `g_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                name,
+                inviteCode: createUniqueInviteCode(groups),
+                inviteUpdatedAt: Date.now(),
+                createdAt: Date.now()
+            };
+            groups.push(group);
+            saveState(groups);
+            setActiveGroupId(group.id);
 
-            codeDisplay.textContent = code;
-            createResult.hidden = false;
-            setStatus(`已创建小组「${name}」并切换。`);
+            createBox.hidden = true; // 创建后立即消失
+            codeBox.hidden = true;
+            setStatus(`已创建小组「${name}」。点击上方小组名可查看当前代号。`);
             refreshGroupLabel();
             afterGroupChanged();
         });
@@ -154,21 +181,50 @@
                 setStatus('请输入 6 位数字字母代号。', true);
                 return;
             }
-            const groups = getGroups();
-            if (!groups[code]) {
-                setStatus('未找到该小组，请检查代号是否正确。', true);
+            const groups = loadState();
+            groups.forEach((g) => refreshInviteCodeIfExpired(g, groups));
+            const target = groups.find((g) => g.inviteCode === code);
+            if (!target) {
+                saveState(groups);
+                setStatus('未找到该小组，请检查代号是否正确或已过期。', true);
                 return;
             }
-            setActiveCode(code);
-            const groupName = groups[code].name || '未命名小组';
-            setStatus(`已加入小组「${groupName}」（${code}）。`);
+            saveState(groups);
+            setActiveGroupId(target.id);
+            joinBox.hidden = true;
+            codeBox.hidden = true;
+            setStatus(`已加入小组「${target.name}」。`);
             refreshGroupLabel();
             afterGroupChanged();
+        });
+
+        currentLabel.addEventListener('click', () => {
+            const groups = loadState();
+            const active = getActiveGroup(groups);
+            if (!active) {
+                setStatus('你还未加入小组。', true);
+                return;
+            }
+            const rotated = refreshInviteCodeIfExpired(active, groups);
+            if (rotated) saveState(groups);
+            codeDisplay.textContent = active.inviteCode;
+            createBox.hidden = true;
+            joinBox.hidden = true;
+            codeBox.hidden = false;
+            setStatus(rotated ? '代号已自动刷新（每 9 小时刷新一次）。' : '');
+            refreshGroupLabel();
         });
     }
 
     window.GroupManager = {
         init: initGroupUI,
-        getActiveGroupCode: getActiveCode
+        getActiveGroupId,
+        getActiveGroupCode: function () {
+            const groups = loadState();
+            const active = getActiveGroup(groups);
+            if (!active) return '';
+            if (refreshInviteCodeIfExpired(active, groups)) saveState(groups);
+            return active.inviteCode;
+        }
     };
 })();

@@ -461,6 +461,21 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     font-weight: 600;
 }
 
+.group-current-trigger {
+    border: none;
+    background: transparent;
+    color: #1a73e8;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    font-size: 13px;
+    text-decoration: underline;
+}
+
+.group-current-trigger:hover {
+    color: #1557b0;
+}
+
 .group-actions {
     display: flex;
     gap: 8px;
@@ -532,10 +547,6 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 
 .group-name-input:focus {
     border-color: var(--primary-color);
-}
-
-.group-create-result {
-    margin-top: 10px;
 }
 
 .group-join-confirm {

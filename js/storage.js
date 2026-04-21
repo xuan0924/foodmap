@@ -4,12 +4,12 @@ const COLLECTION_STORAGE_KEY = 'food_collection_v1';
 const CITY_FILTER_ALL = '__ALL__';
 
 function getCollectionStorageKey() {
-    const fallback = 'SOLO00';
-    const code =
-        window.GroupManager && typeof window.GroupManager.getActiveGroupCode === 'function'
-            ? window.GroupManager.getActiveGroupCode() || fallback
+    const fallback = 'solo_local';
+    const groupId =
+        window.GroupManager && typeof window.GroupManager.getActiveGroupId === 'function'
+            ? window.GroupManager.getActiveGroupId() || fallback
             : fallback;
-    return `${COLLECTION_STORAGE_KEY}:${code}`;
+    return `${COLLECTION_STORAGE_KEY}:${groupId}`;
 }
 
 function getStoredCollection() {
