@@ -441,6 +441,10 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     font-weight: 600;
 }
 
+.collection-group-identity:empty {
+    display: none;
+}
+
 .group-panel {
     border-bottom: 1px solid var(--gem-border);
     background: var(--gem-surface);

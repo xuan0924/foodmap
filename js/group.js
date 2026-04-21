@@ -100,13 +100,8 @@
 
     function refreshGroupLabel() {
         const collectionGroup = document.getElementById('collection-group-identity');
-        const groups = loadState();
         if (collectionGroup) {
-            if (!groups.length) {
-                collectionGroup.textContent = '未加入小组';
-                return;
-            }
-            collectionGroup.textContent = `已加入 ${groups.length} 个小组`;
+            collectionGroup.textContent = '';
         }
     }
 
@@ -163,7 +158,7 @@
             setActiveGroupId(group.id);
 
             createBox.hidden = true; // 创建后立即消失
-            setStatus(`已创建小组「${name}」，代号：${group.inviteCode}（9小时自动刷新）。`);
+            setStatus(`已创建小组「${name}」。`);
             refreshGroupLabel();
             afterGroupChanged();
         });

@@ -2,7 +2,7 @@
 
 const CollectionUI = {
     selectedCityKey: CITY_FILTER_ALL,
-    selectedGroupId: CITY_FILTER_ALL,
+    selectedGroupId: '',
 
     formatCityDisplay(cityKey) {
         if (!cityKey || cityKey === '未知城市') return cityKey || '未知城市';
@@ -20,30 +20,23 @@ const CollectionUI = {
                 ? window.GroupManager.getJoinedGroups()
                 : [];
         const validGroupIds = new Set(groups.map((g) => g.id));
-        if (this.selectedGroupId !== CITY_FILTER_ALL && !validGroupIds.has(this.selectedGroupId)) {
-            this.selectedGroupId = CITY_FILTER_ALL;
+        if (this.selectedGroupId && !validGroupIds.has(this.selectedGroupId)) {
+            this.selectedGroupId = '';
         }
 
         bar.innerHTML = '';
 
-        const mkPill = (label, groupId, isAll) => {
+        const mkPill = (label, groupId) => {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'city-pill';
-            if (isAll) {
-                btn.dataset.cityAll = '1';
-            } else {
-                btn.dataset.group = groupId;
-            }
+            btn.dataset.group = groupId;
             btn.textContent = label;
-            const active =
-                isAll
-                    ? this.selectedGroupId === CITY_FILTER_ALL
-                    : this.selectedGroupId === groupId;
+            const active = this.selectedGroupId === groupId;
             if (active) btn.classList.add('active');
 
             btn.addEventListener('click', () => {
-                this.selectedGroupId = isAll ? CITY_FILTER_ALL : groupId;
+                this.selectedGroupId = groupId;
                 this.selectedCityKey = CITY_FILTER_ALL;
                 this.updateCityFilter();
                 this.renderCollectionTree();
@@ -52,16 +45,13 @@ const CollectionUI = {
             return btn;
         };
 
-        bar.appendChild(mkPill('全部', null, true));
         groups.forEach((group) => {
-            bar.appendChild(mkPill(group.name || '未命名小组', group.id, false));
+            bar.appendChild(mkPill(group.name || '未命名小组', group.id));
         });
     },
 
     getCurrentCollection() {
-        if (this.selectedGroupId === CITY_FILTER_ALL) {
-            return getAllGroupCollections();
-        }
+        if (!this.selectedGroupId) return [];
         return getStoredCollectionByGroupId(this.selectedGroupId).map((item) => ({
             ...item,
             __groupId: this.selectedGroupId
@@ -69,6 +59,10 @@ const CollectionUI = {
     },
 
     syncMapWithFilter() {
+        if (!this.selectedGroupId) {
+            hideAllMarkers();
+            return;
+        }
         const full = this.getCurrentCollection();
         const filtered = filterCollectionByCity(full, this.selectedCityKey);
 
@@ -197,6 +191,10 @@ const CollectionUI = {
         const full = this.getCurrentCollection();
         tree.innerHTML = '';
 
+        if (!this.selectedGroupId) {
+            return;
+        }
+
         if (!full.length) {
             tree.innerHTML = '<div class="collection-empty">还没有收纳店铺，先去搜索并收纳一条吧。</div>';
             return;
@@ -246,20 +244,12 @@ const CollectionUI = {
             title.textContent = '我的收藏';
         }
         if (identity) {
-            if (this.selectedGroupId === CITY_FILTER_ALL) {
-                const groups =
-                    window.GroupManager && typeof window.GroupManager.getJoinedGroups === 'function'
-                        ? window.GroupManager.getJoinedGroups()
-                        : [];
-                identity.textContent = groups.length ? `已加入 ${groups.length} 个小组` : '未加入小组';
-            } else {
-                const groups =
-                    window.GroupManager && typeof window.GroupManager.getJoinedGroups === 'function'
-                        ? window.GroupManager.getJoinedGroups()
-                        : [];
-                const current = groups.find((g) => g.id === this.selectedGroupId);
-                identity.textContent = current ? `当前查看：${current.name}` : '当前查看：未知小组';
-            }
+            const groups =
+                window.GroupManager && typeof window.GroupManager.getJoinedGroups === 'function'
+                    ? window.GroupManager.getJoinedGroups()
+                    : [];
+            const current = groups.find((g) => g.id === this.selectedGroupId);
+            identity.textContent = current ? `当前查看：${current.name}（代号：${current.inviteCode || '暂无'}）` : '';
         }
 
         if (!full.length) {
