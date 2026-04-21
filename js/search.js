@@ -95,11 +95,20 @@ function initSearchModule() {
     }
 
     const searchInput = document.getElementById('searchInput');
+    const searchSubmitBtn = document.getElementById('searchSubmitBtn');
+    const triggerSearch = () => {
+        if (!searchInput) return;
+        executeSearch(searchInput.value.trim());
+    };
+
     searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
-            executeSearch(e.target.value);
+            triggerSearch();
         }
     });
+    if (searchSubmitBtn) {
+        searchSubmitBtn.addEventListener('click', () => triggerSearch());
+    }
 
     bindDrawerToggle();
     refreshCollectionUI();

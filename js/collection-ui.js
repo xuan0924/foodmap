@@ -19,7 +19,14 @@ const CollectionUI = {
             window.GroupManager && typeof window.GroupManager.getJoinedGroups === 'function'
                 ? window.GroupManager.getJoinedGroups()
                 : [];
+        const activeGroupId =
+            window.GroupManager && typeof window.GroupManager.getActiveGroupId === 'function'
+                ? window.GroupManager.getActiveGroupId()
+                : '';
         const validGroupIds = new Set(groups.map((g) => g.id));
+        if (!this.selectedGroupId && activeGroupId && validGroupIds.has(activeGroupId)) {
+            this.selectedGroupId = activeGroupId;
+        }
         if (this.selectedGroupId && !validGroupIds.has(this.selectedGroupId)) {
             this.selectedGroupId = '';
         }
@@ -37,6 +44,9 @@ const CollectionUI = {
 
             btn.addEventListener('click', () => {
                 this.selectedGroupId = groupId;
+                if (window.GroupManager && typeof window.GroupManager.setActiveGroupId === 'function') {
+                    window.GroupManager.setActiveGroupId(groupId);
+                }
                 this.selectedCityKey = CITY_FILTER_ALL;
                 this.updateCityFilter();
                 this.renderCollectionTree();

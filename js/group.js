@@ -59,6 +59,16 @@
         localStorage.setItem(ACTIVE_KEY, id);
     }
 
+    function switchActiveGroup(id) {
+        const targetId = String(id || '').trim();
+        if (!targetId) return false;
+        const groups = loadState();
+        const exists = groups.some((g) => g.id === targetId);
+        if (!exists) return false;
+        setActiveGroupId(targetId);
+        return true;
+    }
+
     function createUniqueInviteCode(groups) {
         const exists = new Set(groups.map((g) => g.inviteCode));
         for (let i = 0; i < 30; i += 1) {
@@ -193,6 +203,7 @@
     window.GroupManager = {
         init: initGroupUI,
         getActiveGroupId,
+        setActiveGroupId: switchActiveGroup,
         getJoinedGroups: function () {
             const groups = loadState();
             groups.forEach((g) => refreshInviteCodeIfExpired(g, groups));
