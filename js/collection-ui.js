@@ -4,6 +4,21 @@ const CollectionUI = {
     selectedCityKey: CITY_FILTER_ALL,
     selectedGroupId: '',
 
+    ensureSelectedGroup(groups) {
+        const list = Array.isArray(groups) ? groups : [];
+        const validGroupIds = new Set(list.map((g) => g.id));
+        const activeGroupId =
+            window.GroupManager && typeof window.GroupManager.getActiveGroupId === 'function'
+                ? window.GroupManager.getActiveGroupId()
+                : '';
+        if (!this.selectedGroupId && activeGroupId && validGroupIds.has(activeGroupId)) {
+            this.selectedGroupId = activeGroupId;
+        }
+        if (this.selectedGroupId && !validGroupIds.has(this.selectedGroupId)) {
+            this.selectedGroupId = '';
+        }
+    },
+
     formatCityDisplay(cityKey) {
         if (!cityKey || cityKey === '未知城市') return cityKey || '未知城市';
         const s = cityKey.trim();
@@ -19,17 +34,7 @@ const CollectionUI = {
             window.GroupManager && typeof window.GroupManager.getJoinedGroups === 'function'
                 ? window.GroupManager.getJoinedGroups()
                 : [];
-        const activeGroupId =
-            window.GroupManager && typeof window.GroupManager.getActiveGroupId === 'function'
-                ? window.GroupManager.getActiveGroupId()
-                : '';
-        const validGroupIds = new Set(groups.map((g) => g.id));
-        if (!this.selectedGroupId && activeGroupId && validGroupIds.has(activeGroupId)) {
-            this.selectedGroupId = activeGroupId;
-        }
-        if (this.selectedGroupId && !validGroupIds.has(this.selectedGroupId)) {
-            this.selectedGroupId = '';
-        }
+        this.ensureSelectedGroup(groups);
 
         bar.innerHTML = '';
 
@@ -55,6 +60,7 @@ const CollectionUI = {
             return btn;
         };
 
+        bar.appendChild(mkPill('选择小组', ''));
         groups.forEach((group) => {
             bar.appendChild(mkPill(group.name || '未命名小组', group.id));
         });
@@ -247,6 +253,12 @@ const CollectionUI = {
     },
 
     refresh() {
+        const groups =
+            window.GroupManager && typeof window.GroupManager.getJoinedGroups === 'function'
+                ? window.GroupManager.getJoinedGroups()
+                : [];
+        this.ensureSelectedGroup(groups);
+
         const full = this.getCurrentCollection();
         const title = document.querySelector('#collection-list .collection-title');
         const identity = document.getElementById('collection-group-identity');
@@ -254,10 +266,6 @@ const CollectionUI = {
             title.textContent = '我的收藏';
         }
         if (identity) {
-            const groups =
-                window.GroupManager && typeof window.GroupManager.getJoinedGroups === 'function'
-                    ? window.GroupManager.getJoinedGroups()
-                    : [];
             const current = groups.find((g) => g.id === this.selectedGroupId);
             identity.textContent = current ? `当前查看：${current.name}（代号：${current.inviteCode || '暂无'}）` : '';
         }

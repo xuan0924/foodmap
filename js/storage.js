@@ -155,6 +155,27 @@ function saveToCollection(item) {
     localStorage.setItem(getCollectionStorageKey(), JSON.stringify(list));
 }
 
+function saveToCollectionByGroupId(groupId, item) {
+    const key = getCollectionStorageKeyByGroupId(groupId);
+    const raw = localStorage.getItem(key);
+    let list = [];
+    if (raw) {
+        try {
+            const parsed = JSON.parse(raw);
+            list = Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+            list = [];
+        }
+    }
+    const idx = findCollectionIndex(list, item);
+    if (idx >= 0) {
+        list[idx] = { ...list[idx], ...item };
+    } else {
+        list.push(item);
+    }
+    localStorage.setItem(key, JSON.stringify(list));
+}
+
 function removeFromCollection(item) {
     const list = getStoredCollection();
     const idx = findCollectionIndex(list, item);

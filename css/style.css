@@ -835,7 +835,8 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 }
 
 .poi-category-select,
-.poi-category-new {
+.poi-category-new,
+.poi-group-select {
     border: 1px solid var(--gem-border);
     border-radius: 8px;
     font-family: var(--gem-font);
@@ -843,6 +844,10 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     padding: 8px 10px;
     outline: none;
     min-width: 0;
+}
+
+.poi-group-select {
+    width: 100%;
 }
 
 .poi-category-select {

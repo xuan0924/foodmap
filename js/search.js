@@ -156,6 +156,21 @@ function renderResultList(pois) {
         return;
     }
 
+    const groups =
+        window.GroupManager && typeof window.GroupManager.getJoinedGroups === 'function'
+            ? window.GroupManager.getJoinedGroups()
+            : [];
+    const activeGroupId =
+        window.GroupManager && typeof window.GroupManager.getActiveGroupId === 'function'
+            ? window.GroupManager.getActiveGroupId()
+            : '';
+    const groupOptions = groups
+        .map((group) => {
+            const selected = group.id === activeGroupId ? ' selected' : '';
+            return `<option value="${group.id}"${selected}>${group.name || '未命名小组'}</option>`;
+        })
+        .join('');
+
     pois.forEach((poi) => {
         const div = document.createElement('div');
         div.className = 'poi-item';
@@ -166,16 +181,20 @@ function renderResultList(pois) {
             <h4>${poi.name}</h4>
             <p>${poi.address || '地址不详'}</p>
             <div class="poi-actions">
+                <select class="poi-group-select" ${groups.length ? '' : 'disabled'}>
+                    ${groups.length ? groupOptions : '<option value="">请先创建或加入小组</option>'}
+                </select>
                 <select class="poi-category-select">${categoryOptions}</select>
                 <button class="poi-new-toggle" type="button">+ 新建</button>
                 <input class="poi-category-new" type="text" placeholder="输入新分类后收纳">
-                <button class="poi-save-btn" type="button">收纳</button>
+                <button class="poi-save-btn" type="button" ${groups.length ? '' : 'disabled'}>收纳</button>
             </div>
         `;
 
         const saveBtn = div.querySelector('.poi-save-btn');
         const categorySelect = div.querySelector('.poi-category-select');
         const categoryNew = div.querySelector('.poi-category-new');
+        const groupSelect = div.querySelector('.poi-group-select');
         const newToggle = div.querySelector('.poi-new-toggle');
         newToggle.addEventListener('click', () => {
             const isOpen = categoryNew.classList.toggle('visible');
@@ -186,13 +205,18 @@ function renderResultList(pois) {
                 categoryNew.value = '';
             }
         });
-        saveBtn.addEventListener('click', () => handleSelectPoi(poi, categorySelect, categoryNew));
+        saveBtn.addEventListener('click', () => handleSelectPoi(poi, categorySelect, categoryNew, groupSelect));
 
         listContainer.appendChild(div);
     });
 }
 
-function handleSelectPoi(poi, categorySelect, categoryNew) {
+function handleSelectPoi(poi, categorySelect, categoryNew, groupSelect) {
+    const targetGroupId = groupSelect ? String(groupSelect.value || '').trim() : '';
+    if (!targetGroupId) {
+        setSearchCityHint('请先选择要收纳到哪个小组。', true);
+        return;
+    }
     const typedCategory = categoryNew ? categoryNew.value.trim() : '';
     const selectedCategory = categorySelect ? categorySelect.value.trim() : '';
     const category = typedCategory || selectedCategory || '我的私藏';
@@ -212,7 +236,10 @@ function handleSelectPoi(poi, categorySelect, categoryNew) {
             city: city || ''
         };
 
-        saveToCollection(foodData);
+        if (window.GroupManager && typeof window.GroupManager.setActiveGroupId === 'function') {
+            window.GroupManager.setActiveGroupId(targetGroupId);
+        }
+        saveToCollectionByGroupId(targetGroupId, foodData);
         MapEngine.renderMarker(foodData);
         flyToPosition([lng, lat]);
         refreshCollectionUI();
