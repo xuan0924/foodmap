@@ -62,11 +62,32 @@ function initThemePicker() {
         '#ECF7F7': '#7FCBD3'
     };
 
+    function hexToRgb(hex) {
+        const h = String(hex || '').trim().replace('#', '');
+        if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
+        return {
+            r: parseInt(h.slice(0, 2), 16),
+            g: parseInt(h.slice(2, 4), 16),
+            b: parseInt(h.slice(4, 6), 16)
+        };
+    }
+
+    function toRgba(hex, alpha) {
+        const rgb = hexToRgb(hex);
+        if (!rgb) return '';
+        return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+    }
+
     function applyTheme(bg, primary, border) {
         if (bg) root.style.setProperty('--app-bg-color', bg);
         if (primary) {
             root.style.setProperty('--theme-primary', primary);
             root.style.setProperty('--primary-color', primary);
+            root.style.setProperty('--theme-strong', toRgba(primary, 1) || primary);
+            root.style.setProperty('--gem-hover-primary', toRgba(primary, 0.14));
+            root.style.setProperty('--theme-soft-bg', toRgba(primary, 0.12));
+            root.style.setProperty('--theme-soft-bg-strong', toRgba(primary, 0.2));
+            root.style.setProperty('--theme-on-soft', toRgba(primary, 0.88));
         }
         if (border) {
             root.style.setProperty('--theme-border', border);

@@ -12,7 +12,11 @@
     --gem-surface: #ffffff;
     --gem-surface-dim: var(--app-bg-color);
     --gem-hover: #e8eaed;
-    --gem-hover-primary: #e8f0fe;
+    --gem-hover-primary: rgba(26, 115, 232, 0.14);
+    --theme-soft-bg: rgba(26, 115, 232, 0.12);
+    --theme-soft-bg-strong: rgba(26, 115, 232, 0.2);
+    --theme-on-soft: #1f3d75;
+    --theme-strong: #1557b0;
     --gem-topbar-h: 64px;
     --gem-side-w: 304px;
     --gem-font: "Roboto", "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -320,7 +324,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 
 .search-city-apply:hover {
     background: var(--gem-hover-primary);
-    color: #1557b0;
+    color: var(--theme-strong);
 }
 
 .search-box {
@@ -511,8 +515,8 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     margin: 0 20px 8px;
     padding: 8px 10px;
     border-radius: 10px;
-    background: #eef3fd;
-    color: #1f3d75;
+    background: var(--theme-soft-bg);
+    color: var(--theme-on-soft);
     font-size: 12px;
     font-weight: 600;
 }
@@ -544,7 +548,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 .group-current-trigger {
     border: none;
     background: transparent;
-    color: #1a73e8;
+    color: var(--primary-color);
     font-weight: 600;
     cursor: pointer;
     padding: 0;
@@ -553,7 +557,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 }
 
 .group-current-trigger:hover {
-    color: #1557b0;
+    color: var(--theme-strong);
 }
 
 .group-actions {
@@ -584,7 +588,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     padding: 10px;
     border: 1px dashed var(--gem-border);
     border-radius: 10px;
-    background: #f7faff;
+    background: var(--theme-soft-bg);
 }
 
 .group-box-title {
@@ -646,7 +650,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 .city-toggle {
     width: 100%;
     border: none;
-    background: linear-gradient(180deg, #f4f6fa 0%, #eef1f6 100%);
+    background: linear-gradient(180deg, var(--theme-soft-bg) 0%, var(--theme-soft-bg-strong) 100%);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -657,7 +661,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 }
 
 .city-toggle:hover {
-    background: #e8edf5;
+    background: var(--theme-soft-bg-strong);
 }
 
 .city-toggle[aria-expanded="true"] .city-arrow {
@@ -948,7 +952,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 }
 
 .poi-save-btn:hover {
-    background: #1557b0;
+    background: var(--theme-strong);
     box-shadow: 0 1px 2px rgba(26, 115, 232, 0.35);
 }
 
@@ -989,7 +993,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    background: #3c4043;
+    background: var(--theme-strong);
     color: #fff;
     border-radius: 999px;
     padding: 6px 12px;
