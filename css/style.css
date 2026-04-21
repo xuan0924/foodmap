@@ -7,7 +7,7 @@
     --bg-light: #f8f9fa;
     --gem-text: #202124;
     --gem-text-secondary: #5f6368;
-    --theme-border: #C8D8F0;
+    --theme-border: #9AB8E6;
     --gem-border: var(--theme-border);
     --gem-surface: #ffffff;
     --gem-surface-dim: var(--app-bg-color);
@@ -201,7 +201,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     width: min(var(--gem-side-w), 100vw);
     z-index: 160;
     background: rgba(255, 255, 255, 0.74);
-    border-right: 1px solid rgba(255, 255, 255, 0.58);
+    border-right: 1px solid var(--gem-border);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     display: flex;

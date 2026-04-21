@@ -54,6 +54,13 @@ function initThemePicker() {
     if (!toggleBtn || !panel) return;
 
     const swatches = Array.from(panel.querySelectorAll('.theme-swatch'));
+    const borderByBg = {
+        '#FDF6EC': '#9AB8E6',
+        '#F3F8EE': '#8FCF8A',
+        '#F4F1FB': '#B59DE5',
+        '#FFF2E8': '#F1AA6B',
+        '#ECF7F7': '#7FCBD3'
+    };
 
     function applyTheme(bg, primary, border) {
         if (bg) root.style.setProperty('--app-bg-color', bg);
@@ -77,10 +84,11 @@ function initThemePicker() {
     const savedPrimary = localStorage.getItem(THEME_PRIMARY_KEY);
     const savedBorder = localStorage.getItem(THEME_BORDER_KEY);
     if (savedBg) {
-        applyTheme(savedBg, savedPrimary || '#1A73E8', savedBorder || '#C8D8F0');
+        const fallbackBorder = borderByBg[String(savedBg || '').toUpperCase()] || '#9AB8E6';
+        applyTheme(savedBg, savedPrimary || '#1A73E8', savedBorder || fallbackBorder);
         markActive(savedBg);
     } else {
-        applyTheme('#FDF6EC', '#1A73E8', '#C8D8F0');
+        applyTheme('#FDF6EC', '#1A73E8', '#9AB8E6');
         markActive('#FDF6EC');
     }
 
@@ -99,7 +107,7 @@ function initThemePicker() {
             e.stopPropagation();
             const bg = btn.dataset.themeBg || '#FDF6EC';
             const primary = btn.dataset.themePrimary || '#1A73E8';
-            const border = btn.dataset.themeBorder || '#C8D8F0';
+            const border = btn.dataset.themeBorder || '#9AB8E6';
             applyTheme(bg, primary, border);
             markActive(bg);
             localStorage.setItem(THEME_BG_KEY, bg);
