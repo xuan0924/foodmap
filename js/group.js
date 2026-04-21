@@ -118,7 +118,6 @@
 
     function initGroupUI() {
         if (uiInitialized) return;
-        const settingsToggle = document.getElementById('group-settings-toggle');
         const settingsPanel = document.getElementById('group-settings-panel');
         const createBtn = document.getElementById('group-create-btn');
         const joinBtn = document.getElementById('group-join-btn');
@@ -131,13 +130,25 @@
         if (!createBtn || !joinBtn || !createBox || !joinBox || !nameInput || !createConfirm || !joinInput || !joinConfirm) return;
         uiInitialized = true;
 
-        if (settingsToggle && settingsPanel) {
-            settingsToggle.addEventListener('click', () => {
-                const isOpen = !settingsPanel.hidden;
-                settingsPanel.hidden = isOpen;
-                settingsToggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
-            });
+        function setSettingsOpen(open) {
+            if (!settingsPanel) return;
+            settingsPanel.hidden = !open;
+            const btn = document.getElementById('group-settings-toggle');
+            if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
         }
+
+        document.addEventListener('click', (e) => {
+            const btn = e.target && typeof e.target.closest === 'function' ? e.target.closest('#group-settings-toggle') : null;
+            if (btn) {
+                const nextOpen = settingsPanel ? settingsPanel.hidden : true;
+                setSettingsOpen(nextOpen);
+                return;
+            }
+            if (settingsPanel && !settingsPanel.hidden) {
+                const insidePanel = settingsPanel.contains(e.target);
+                if (!insidePanel) setSettingsOpen(false);
+            }
+        });
 
         refreshGroupLabel();
 

@@ -204,7 +204,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     bottom: 0;
     width: min(var(--gem-side-w), 100vw);
     z-index: 160;
-    background: rgba(255, 255, 255, 0.52);
+    background: rgba(255, 255, 255, 0.38);
     border-right: 1px solid var(--gem-border);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -228,6 +228,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     padding: 12px 8px 12px 20px;
     border-bottom: 1px solid var(--gem-border);
     min-height: 56px;
+    background: var(--theme-soft-bg);
 }
 
 .gem-drawer-title {
@@ -235,7 +236,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     font-size: 1rem;
     font-family: var(--gem-font);
     font-weight: 500;
-    color: var(--gem-text);
+    color: var(--theme-strong);
     letter-spacing: -0.01em;
 }
 
@@ -248,7 +249,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     flex: 1;
     min-height: 0;
     overflow: hidden;
-    background: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.08);
     display: flex;
     flex-direction: column;
 }
@@ -424,6 +425,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    position: relative;
 }
 
 .city-pill-scroll {
@@ -450,37 +452,6 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     border-radius: 4px;
 }
 
-.group-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-right: 10px;
-    border-bottom: 1px solid var(--gem-border);
-    background: rgba(255, 255, 255, 0.26);
-}
-
-.group-toolbar .collection-title {
-    margin: 0;
-    background: transparent;
-}
-
-.group-settings-toggle {
-    width: 34px;
-    height: 34px;
-    border: 1px solid var(--gem-border);
-    border-radius: 10px;
-    background: var(--gem-surface);
-    color: var(--gem-text-secondary);
-    cursor: pointer;
-    font-size: 20px;
-    line-height: 1;
-}
-
-.group-settings-toggle:hover {
-    background: var(--gem-hover-primary);
-    color: var(--primary-color);
-}
-
 .city-pill {
     flex: 0 0 auto;
     border: 1px solid var(--gem-border);
@@ -494,6 +465,17 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     cursor: pointer;
     white-space: nowrap;
     transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.group-settings-pill {
+    width: 42px;
+    min-width: 42px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    line-height: 1;
 }
 
 .city-pill:hover {
@@ -543,8 +525,17 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 }
 
 .group-panel {
-    border-bottom: 1px solid var(--gem-border);
-    background: rgba(255, 255, 255, 0.24);
+    border: 1px solid var(--gem-border);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    position: absolute;
+    top: 92px;
+    right: 12px;
+    width: min(280px, calc(100% - 24px));
+    z-index: 25;
+    box-shadow: 0 10px 26px rgba(60, 64, 67, 0.2);
 }
 
 .group-panel-inner {

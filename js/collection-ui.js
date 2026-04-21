@@ -63,6 +63,15 @@ const CollectionUI = {
         groups.forEach((group) => {
             bar.appendChild(mkPill(group.name || '未命名小组', group.id));
         });
+        const settingsPill = document.createElement('button');
+        settingsPill.type = 'button';
+        settingsPill.id = 'group-settings-toggle';
+        settingsPill.className = 'city-pill group-settings-pill';
+        settingsPill.setAttribute('aria-label', '打开小组设置');
+        settingsPill.setAttribute('aria-expanded', 'false');
+        settingsPill.setAttribute('aria-controls', 'group-settings-panel');
+        settingsPill.textContent = '⋮';
+        bar.appendChild(settingsPill);
     },
 
     getCurrentCollection() {
