@@ -46,7 +46,7 @@
 
     <aside id="side-panel" class="gem-side-panel" aria-hidden="true" aria-label="收藏夹">
         <div class="gem-drawer-head">
-            <h2 class="gem-drawer-title">菜单</h2>
+            <h2 class="gem-drawer-title">收藏</h2>
             <button type="button" class="gem-icon-btn gem-drawer-close" id="drawer-close-btn" aria-label="关闭侧边栏">
                 <svg class="gem-ico" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
                     <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
@@ -55,10 +55,9 @@
         </div>
         <div class="drawer-body gem-drawer-body">
             <div id="collection-list">
-                <h4 class="collection-title">当前版本</h4>
-                <div id="collection-tree">
-                    <div class="collection-empty">已精简为武汉搜索模式，其他功能暂时关闭。</div>
-                </div>
+                <div id="city-pill-bar" class="city-pill-scroll" aria-label="按城市筛选"></div>
+                <h4 class="collection-title">我的收藏</h4>
+                <div id="collection-tree"></div>
             </div>
         </div>
     </aside>
@@ -93,6 +92,8 @@
     <div id="container"></div>
 
     <script src="js/map-engine.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/collection-ui.js"></script>
     <script src="js/search.js"></script>
     <script src="js/main.js"></script>
 </body>
