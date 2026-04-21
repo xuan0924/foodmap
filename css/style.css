@@ -525,21 +525,21 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 }
 
 .group-panel {
-    border: 1px solid var(--gem-border);
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid color-mix(in srgb, var(--gem-border) 65%, white);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.94);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     position: absolute;
-    top: 92px;
-    right: 12px;
-    width: min(280px, calc(100% - 24px));
+    top: 94px;
+    right: 10px;
+    width: 252px;
     z-index: 25;
-    box-shadow: 0 10px 26px rgba(60, 64, 67, 0.2);
+    box-shadow: 0 10px 24px rgba(60, 64, 67, 0.16);
 }
 
 .group-panel-inner {
-    padding: 0 16px 12px;
+    padding: 10px 12px 12px;
 }
 
 .group-current {
@@ -570,19 +570,19 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 
 .group-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
 }
 
 .group-btn,
 .group-join-confirm {
-    border: 1px solid var(--gem-border);
-    border-radius: 10px;
+    border: 1px solid color-mix(in srgb, var(--gem-border) 70%, white);
+    border-radius: 9px;
     background: var(--gem-surface);
     color: var(--gem-text);
     font-family: var(--gem-font);
     font-size: 13px;
     font-weight: 500;
-    padding: 8px 10px;
+    padding: 8px 9px;
     cursor: pointer;
 }
 
@@ -592,17 +592,17 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 }
 
 .group-box {
-    margin-top: 10px;
-    padding: 10px;
-    border: 1px dashed var(--gem-border);
-    border-radius: 10px;
-    background: var(--theme-soft-bg);
+    margin-top: 8px;
+    padding: 9px;
+    border: 1px dashed color-mix(in srgb, var(--gem-border) 75%, white);
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--theme-soft-bg) 65%, white);
 }
 
 .group-box-title {
     font-size: 12px;
     color: var(--gem-text-secondary);
-    margin-bottom: 6px;
+    margin-bottom: 5px;
 }
 
 .group-code-display {
@@ -614,12 +614,12 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 
 .group-join-input {
     width: 100%;
-    border: 1px solid var(--gem-border);
-    border-radius: 10px;
-    padding: 9px 10px;
+    border: 1px solid color-mix(in srgb, var(--gem-border) 70%, white);
+    border-radius: 9px;
+    padding: 8px 9px;
     font-size: 14px;
     letter-spacing: 0.18em;
-    margin-bottom: 8px;
+    margin-bottom: 7px;
     outline: none;
 }
 
@@ -629,11 +629,11 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 
 .group-name-input {
     width: 100%;
-    border: 1px solid var(--gem-border);
-    border-radius: 10px;
-    padding: 9px 10px;
+    border: 1px solid color-mix(in srgb, var(--gem-border) 70%, white);
+    border-radius: 9px;
+    padding: 8px 9px;
     font-size: 14px;
-    margin-bottom: 8px;
+    margin-bottom: 7px;
     outline: none;
 }
 
