@@ -4,6 +4,7 @@
     const ACTIVE_KEY = 'food_active_group_v1';
     const ALPHANUM = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     const CODE_REFRESH_MS = 9 * 60 * 60 * 1000;
+    let uiInitialized = false;
 
     function randomCode() {
         let out = '';
@@ -114,6 +115,7 @@
     }
 
     function initGroupUI() {
+        if (uiInitialized) return;
         const createBtn = document.getElementById('group-create-btn');
         const joinBtn = document.getElementById('group-join-btn');
         const createBox = document.getElementById('group-create-box');
@@ -123,6 +125,7 @@
         const joinInput = document.getElementById('group-join-input');
         const joinConfirm = document.getElementById('group-join-confirm');
         if (!createBtn || !joinBtn || !createBox || !joinBox || !nameInput || !createConfirm || !joinInput || !joinConfirm) return;
+        uiInitialized = true;
 
         refreshGroupLabel();
 
