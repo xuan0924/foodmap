@@ -1,6 +1,6 @@
-// js/search.js — 精简版：固定武汉搜索
+// js/search.js — 全国选城后，仅在该城市内搜索餐饮
 let placeSearch = null;
-const LOCKED_CITY_NAME = '武汉';
+let activeSearchCityName = '';
 
 function setSearchCityHint(text, isError) {
     const el = document.getElementById('search-city-hint');
@@ -10,11 +10,17 @@ function setSearchCityHint(text, isError) {
     el.classList.toggle('search-city-hint--error', !!isError);
 }
 
+function normalizeCityForPlaceSearch(raw) {
+    const s = String(raw || '').trim();
+    if (!s) return '';
+    return s.replace(/(市|地区|自治州|盟|县)$/, '') || s;
+}
+
 function rebuildPlaceSearch() {
     const map = MapEngine.getMap();
     placeSearch = new AMap.PlaceSearch({
-        city: LOCKED_CITY_NAME,
-        citylimit: true,
+        city: normalizeCityForPlaceSearch(activeSearchCityName),
+        citylimit: !!activeSearchCityName,
         type: '餐饮服务',
         pageSize: 10,
         map: map || null,
@@ -28,13 +34,22 @@ function initSearchModule() {
     const applyBtn = document.getElementById('searchCityApply');
     const searchInput = document.getElementById('searchInput');
 
-    if (cityInput) cityInput.value = LOCKED_CITY_NAME;
-    if (applyBtn) applyBtn.disabled = true;
+    if (cityInput && AMAP_CONFIG.DEFAULT_SEARCH_CITY) {
+        cityInput.value = AMAP_CONFIG.DEFAULT_SEARCH_CITY;
+    }
+    rebuildPlaceSearch();
 
-    MapEngine.focusSearchCity(LOCKED_CITY_NAME, function () {
-        rebuildPlaceSearch();
-        setSearchCityHint('当前仅支持武汉搜索。');
-    });
+    if (applyBtn) {
+        applyBtn.addEventListener('click', () => applySearchCity());
+    }
+    if (cityInput) {
+        cityInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                applySearchCity();
+            }
+        });
+    }
 
     if (searchInput) {
         searchInput.addEventListener('keypress', (e) => {
@@ -45,12 +60,20 @@ function initSearchModule() {
     }
 
     bindDrawerToggle();
+
+    if (cityInput && cityInput.value.trim()) {
+        applySearchCity();
+    }
 }
 
 function executeSearch(keyword) {
     const q = String(keyword || '').trim();
     if (!q) return;
-    if (!placeSearch) rebuildPlaceSearch();
+    if (!activeSearchCityName) {
+        renderResultList([]);
+        setSearchCityHint('请先输入城市并点击「定位」。', true);
+        return;
+    }
 
     placeSearch.search(q, (status, result) => {
         if (status === 'complete' && result.info === 'OK') {
@@ -68,7 +91,7 @@ function renderResultList(pois) {
     listContainer.classList.add('visible');
 
     if (!pois.length) {
-        listContainer.innerHTML = '<div class="poi-empty">武汉暂无匹配结果，换个关键词试试。</div>';
+        listContainer.innerHTML = '<div class="poi-empty">当前城市暂无匹配结果，换个关键词试试。</div>';
         return;
     }
 
@@ -87,6 +110,28 @@ function renderResultList(pois) {
             flyToPosition([lng, lat]);
         });
         listContainer.appendChild(div);
+    });
+}
+
+function applySearchCity() {
+    const cityInput = document.getElementById('searchCityInput');
+    const raw = cityInput ? cityInput.value.trim() : '';
+    if (!raw) {
+        activeSearchCityName = '';
+        rebuildPlaceSearch();
+        setSearchCityHint('请先输入城市名。', true);
+        return;
+    }
+    MapEngine.focusSearchCity(raw, function (ok) {
+        if (!ok) {
+            activeSearchCityName = '';
+            rebuildPlaceSearch();
+            setSearchCityHint('未识别该城市，请换个写法试试。', true);
+            return;
+        }
+        activeSearchCityName = raw;
+        rebuildPlaceSearch();
+        setSearchCityHint(`已定位到「${raw}」，可搜索本城餐饮。`, false);
     });
 }
 

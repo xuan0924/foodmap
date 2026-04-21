@@ -67,14 +67,26 @@
         <div class="search-float-row">
             <div class="search-city-group">
                 <label class="search-city-label" for="searchCityInput">城市</label>
-                <input type="text" id="searchCityInput" class="search-city-input" value="武汉" readonly aria-label="搜索城市">
-                <button type="button" id="searchCityApply" class="search-city-apply" disabled>已锁定</button>
+                <input type="text" id="searchCityInput" class="search-city-input" list="search-city-suggestions" placeholder="如：武汉" autocomplete="off" aria-label="搜索城市">
+                <datalist id="search-city-suggestions">
+                    <option value="武汉">
+                    <option value="北京">
+                    <option value="上海">
+                    <option value="广州">
+                    <option value="深圳">
+                    <option value="成都">
+                    <option value="杭州">
+                    <option value="南京">
+                    <option value="西安">
+                    <option value="重庆">
+                </datalist>
+                <button type="button" id="searchCityApply" class="search-city-apply">定位</button>
             </div>
             <div class="search-box search-box-main">
-                <input type="text" id="searchInput" placeholder="在武汉搜索餐饮…" autocomplete="off">
+                <input type="text" id="searchInput" placeholder="在当前城市搜索餐饮…" autocomplete="off">
             </div>
         </div>
-        <p id="search-city-hint" class="search-city-hint" role="status">当前仅支持武汉搜索。</p>
+        <p id="search-city-hint" class="search-city-hint" hidden role="status"></p>
         <div id="result-list"></div>
     </div>
 
