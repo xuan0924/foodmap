@@ -7,7 +7,8 @@
     --bg-light: #f8f9fa;
     --gem-text: #202124;
     --gem-text-secondary: #5f6368;
-    --gem-border: #dadce0;
+    --theme-border: #C8D8F0;
+    --gem-border: var(--theme-border);
     --gem-surface: #ffffff;
     --gem-surface-dim: var(--app-bg-color);
     --gem-hover: #e8eaed;
@@ -105,7 +106,7 @@ body, html {
     border-radius: 50%;
     border: 2px solid #fff;
     background: var(--swatch-color);
-    box-shadow: 0 0 0 1px #d2d6dc;
+    box-shadow: 0 0 0 1px var(--gem-border);
     cursor: pointer;
     padding: 0;
 }
@@ -318,7 +319,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 }
 
 .search-city-apply:hover {
-    background: #d2e3fc;
+    background: var(--gem-hover-primary);
     color: #1557b0;
 }
 
@@ -351,7 +352,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 }
 
 #searchInput:hover {
-    border-color: #bdc1c6;
+    border-color: var(--gem-border);
 }
 
 #searchInput:focus {
@@ -468,7 +469,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 .city-pill.active {
     background: var(--gem-hover-primary);
     color: var(--primary-color);
-    border-color: #aecbfa;
+    border-color: var(--gem-border);
     font-weight: 600;
 }
 
@@ -581,7 +582,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 .group-box {
     margin-top: 10px;
     padding: 10px;
-    border: 1px dashed #c7d5ee;
+    border: 1px dashed var(--gem-border);
     border-radius: 10px;
     background: #f7faff;
 }
@@ -639,7 +640,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 }
 
 .city-group {
-    border-top: 1px solid #e8e8e8;
+    border-top: 1px solid var(--gem-border);
 }
 
 .city-toggle {
@@ -693,7 +694,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     display: none;
     padding: 4px 0 8px 10px;
     margin-left: 6px;
-    border-left: 3px solid #d0d9ea;
+    border-left: 3px solid var(--gem-border);
     background: #fafbfc;
 }
 
@@ -710,7 +711,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 }
 
 .folder-group {
-    border-top: 1px solid #f3f3f3;
+    border-top: 1px solid var(--gem-border);
 }
 
 .folder-toggle {
@@ -787,7 +788,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 
 .collection-item:hover {
     background: var(--gem-hover-primary);
-    border-color: #d2e3fc;
+    border-color: var(--gem-border);
 }
 
 .collection-item-main {

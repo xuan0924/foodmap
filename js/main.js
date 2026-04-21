@@ -47,6 +47,7 @@ function showMapLoadError(message) {
 function initThemePicker() {
     const THEME_BG_KEY = 'food_theme_bg_v1';
     const THEME_PRIMARY_KEY = 'food_theme_primary_v1';
+    const THEME_BORDER_KEY = 'food_theme_border_v1';
     const root = document.documentElement;
     const toggleBtn = document.getElementById('theme-picker-toggle');
     const panel = document.getElementById('theme-picker-panel');
@@ -54,11 +55,15 @@ function initThemePicker() {
 
     const swatches = Array.from(panel.querySelectorAll('.theme-swatch'));
 
-    function applyTheme(bg, primary) {
+    function applyTheme(bg, primary, border) {
         if (bg) root.style.setProperty('--app-bg-color', bg);
         if (primary) {
             root.style.setProperty('--theme-primary', primary);
             root.style.setProperty('--primary-color', primary);
+        }
+        if (border) {
+            root.style.setProperty('--theme-border', border);
+            root.style.setProperty('--gem-border', border);
         }
     }
 
@@ -70,10 +75,12 @@ function initThemePicker() {
 
     const savedBg = localStorage.getItem(THEME_BG_KEY);
     const savedPrimary = localStorage.getItem(THEME_PRIMARY_KEY);
+    const savedBorder = localStorage.getItem(THEME_BORDER_KEY);
     if (savedBg) {
-        applyTheme(savedBg, savedPrimary || '#1A73E8');
+        applyTheme(savedBg, savedPrimary || '#1A73E8', savedBorder || '#C8D8F0');
         markActive(savedBg);
     } else {
+        applyTheme('#FDF6EC', '#1A73E8', '#C8D8F0');
         markActive('#FDF6EC');
     }
 
@@ -92,10 +99,12 @@ function initThemePicker() {
             e.stopPropagation();
             const bg = btn.dataset.themeBg || '#FDF6EC';
             const primary = btn.dataset.themePrimary || '#1A73E8';
-            applyTheme(bg, primary);
+            const border = btn.dataset.themeBorder || '#C8D8F0';
+            applyTheme(bg, primary, border);
             markActive(bg);
             localStorage.setItem(THEME_BG_KEY, bg);
             localStorage.setItem(THEME_PRIMARY_KEY, primary);
+            localStorage.setItem(THEME_BORDER_KEY, border);
             setPanelOpen(false);
         });
     });
