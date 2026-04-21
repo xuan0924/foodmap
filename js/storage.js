@@ -3,8 +3,17 @@
 const COLLECTION_STORAGE_KEY = 'food_collection_v1';
 const CITY_FILTER_ALL = '__ALL__';
 
+function getCollectionStorageKey() {
+    const fallback = 'SOLO00';
+    const code =
+        window.GroupManager && typeof window.GroupManager.getActiveGroupCode === 'function'
+            ? window.GroupManager.getActiveGroupCode() || fallback
+            : fallback;
+    return `${COLLECTION_STORAGE_KEY}:${code}`;
+}
+
 function getStoredCollection() {
-    const raw = localStorage.getItem(COLLECTION_STORAGE_KEY);
+    const raw = localStorage.getItem(getCollectionStorageKey());
     if (!raw) return [];
     try {
         const parsed = JSON.parse(raw);
@@ -95,7 +104,7 @@ function saveToCollection(item) {
     } else {
         list.push(item);
     }
-    localStorage.setItem(COLLECTION_STORAGE_KEY, JSON.stringify(list));
+    localStorage.setItem(getCollectionStorageKey(), JSON.stringify(list));
 }
 
 function removeFromCollection(item) {
@@ -103,5 +112,5 @@ function removeFromCollection(item) {
     const idx = findCollectionIndex(list, item);
     if (idx < 0) return;
     list.splice(idx, 1);
-    localStorage.setItem(COLLECTION_STORAGE_KEY, JSON.stringify(list));
+    localStorage.setItem(getCollectionStorageKey(), JSON.stringify(list));
 }

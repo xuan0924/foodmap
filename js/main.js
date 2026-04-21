@@ -4,6 +4,9 @@ window.onload = async function() {
     try {
         await loadAMapScript();
         initMapEngine('container');
+        if (window.GroupManager && typeof window.GroupManager.init === 'function') {
+            window.GroupManager.init();
+        }
         initSearchModule();
         console.log("💡 准备就绪，全国搜索餐饮 POI，收纳你的私藏。");
     } catch (error) {

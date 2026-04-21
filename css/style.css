@@ -431,6 +431,95 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     background: var(--gem-surface);
 }
 
+.group-panel {
+    border-bottom: 1px solid var(--gem-border);
+    background: var(--gem-surface);
+}
+
+.group-panel-inner {
+    padding: 0 16px 12px;
+}
+
+.group-current {
+    font-size: 13px;
+    color: var(--gem-text-secondary);
+    margin-bottom: 10px;
+}
+
+.group-current span {
+    color: var(--gem-text);
+    font-weight: 600;
+}
+
+.group-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.group-btn,
+.group-join-confirm {
+    border: 1px solid var(--gem-border);
+    border-radius: 10px;
+    background: var(--gem-surface);
+    color: var(--gem-text);
+    font-family: var(--gem-font);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 10px;
+    cursor: pointer;
+}
+
+.group-btn:hover,
+.group-join-confirm:hover {
+    background: var(--gem-hover-primary);
+}
+
+.group-box {
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px dashed #c7d5ee;
+    border-radius: 10px;
+    background: #f7faff;
+}
+
+.group-box-title {
+    font-size: 12px;
+    color: var(--gem-text-secondary);
+    margin-bottom: 6px;
+}
+
+.group-code-display {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: var(--primary-color);
+}
+
+.group-join-input {
+    width: 100%;
+    border: 1px solid var(--gem-border);
+    border-radius: 10px;
+    padding: 9px 10px;
+    font-size: 14px;
+    letter-spacing: 0.18em;
+    margin-bottom: 8px;
+    outline: none;
+}
+
+.group-join-input:focus {
+    border-color: var(--primary-color);
+}
+
+.group-join-confirm {
+    width: 100%;
+}
+
+.group-status {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--gem-text-secondary);
+}
+
 .city-group {
     border-top: 1px solid #e8e8e8;
 }
