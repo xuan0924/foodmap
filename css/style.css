@@ -431,6 +431,16 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     background: var(--gem-surface);
 }
 
+.collection-group-identity {
+    margin: 0 20px 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #eef3fd;
+    color: #1f3d75;
+    font-size: 12px;
+    font-weight: 600;
+}
+
 .group-panel {
     border-bottom: 1px solid var(--gem-border);
     background: var(--gem-surface);
@@ -508,6 +518,24 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 
 .group-join-input:focus {
     border-color: var(--primary-color);
+}
+
+.group-name-input {
+    width: 100%;
+    border: 1px solid var(--gem-border);
+    border-radius: 10px;
+    padding: 9px 10px;
+    font-size: 14px;
+    margin-bottom: 8px;
+    outline: none;
+}
+
+.group-name-input:focus {
+    border-color: var(--primary-color);
+}
+
+.group-create-result {
+    margin-top: 10px;
 }
 
 .group-join-confirm {

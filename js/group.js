@@ -52,9 +52,16 @@
 
     function refreshGroupLabel() {
         const label = document.getElementById('group-current-label');
+        const collectionGroup = document.getElementById('collection-group-identity');
         if (!label) return;
         const active = getActiveCode();
-        label.textContent = active || '未加入';
+        const groups = getGroups();
+        const group = active ? groups[active] : null;
+        const text = group ? `${group.name || '未命名小组'}（${active}）` : '未加入';
+        label.textContent = text;
+        if (collectionGroup) {
+            collectionGroup.textContent = group ? `当前小组：${text}` : '未加入小组';
+        }
     }
 
     function setStatus(msg, isError) {
@@ -80,27 +87,35 @@
         const createBtn = document.getElementById('group-create-btn');
         const joinBtn = document.getElementById('group-join-btn');
         const createBox = document.getElementById('group-create-box');
+        const createResult = document.getElementById('group-create-result');
         const joinBox = document.getElementById('group-join-box');
         const codeDisplay = document.getElementById('group-code-display');
+        const nameInput = document.getElementById('group-name-input');
+        const createConfirm = document.getElementById('group-create-confirm');
         const joinInput = document.getElementById('group-join-input');
         const joinConfirm = document.getElementById('group-join-confirm');
-        if (!createBtn || !joinBtn || !createBox || !joinBox || !codeDisplay || !joinInput || !joinConfirm) return;
+        if (
+            !createBtn ||
+            !joinBtn ||
+            !createBox ||
+            !createResult ||
+            !joinBox ||
+            !codeDisplay ||
+            !nameInput ||
+            !createConfirm ||
+            !joinInput ||
+            !joinConfirm
+        ) return;
 
         refreshGroupLabel();
 
         createBtn.addEventListener('click', () => {
-            const groups = getGroups();
-            const code = createUniqueCode(groups);
-            groups[code] = { code, createdAt: Date.now() };
-            setGroups(groups);
-            setActiveCode(code);
-
-            codeDisplay.textContent = code;
             createBox.hidden = false;
+            createResult.hidden = true;
             joinBox.hidden = true;
-            setStatus('已创建并切换到新小组。');
-            refreshGroupLabel();
-            afterGroupChanged();
+            nameInput.value = '';
+            setStatus('');
+            nameInput.focus();
         });
 
         joinBtn.addEventListener('click', () => {
@@ -108,6 +123,25 @@
             joinBox.hidden = false;
             setStatus('');
             joinInput.focus();
+        });
+
+        createConfirm.addEventListener('click', () => {
+            const name = String(nameInput.value || '').trim();
+            if (!name) {
+                setStatus('请先输入小组名称。', true);
+                return;
+            }
+            const groups = getGroups();
+            const code = createUniqueCode(groups);
+            groups[code] = { code, name, createdAt: Date.now() };
+            setGroups(groups);
+            setActiveCode(code);
+
+            codeDisplay.textContent = code;
+            createResult.hidden = false;
+            setStatus(`已创建小组「${name}」并切换。`);
+            refreshGroupLabel();
+            afterGroupChanged();
         });
 
         joinInput.addEventListener('input', () => {
@@ -126,7 +160,8 @@
                 return;
             }
             setActiveCode(code);
-            setStatus(`已加入小组 ${code}。`);
+            const groupName = groups[code].name || '未命名小组';
+            setStatus(`已加入小组「${groupName}」（${code}）。`);
             refreshGroupLabel();
             afterGroupChanged();
         });

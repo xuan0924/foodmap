@@ -63,8 +63,13 @@
                         <button type="button" id="group-join-btn" class="group-btn">加入小组</button>
                     </div>
                     <div id="group-create-box" class="group-box" hidden>
-                        <div class="group-box-title">创建成功，小组代号：</div>
-                        <div id="group-code-display" class="group-code-display">------</div>
+                        <div class="group-box-title">先给你的小组取个名字</div>
+                        <input id="group-name-input" class="group-name-input" type="text" maxlength="20" placeholder="例如：武汉探店团">
+                        <button type="button" id="group-create-confirm" class="group-join-confirm">确认创建</button>
+                        <div id="group-create-result" class="group-create-result" hidden>
+                            <div class="group-box-title">创建成功，小组代号：</div>
+                            <div id="group-code-display" class="group-code-display">------</div>
+                        </div>
                     </div>
                     <div id="group-join-box" class="group-box" hidden>
                         <input id="group-join-input" class="group-join-input" type="text" maxlength="6" placeholder="输入 6 位代号">
@@ -75,6 +80,8 @@
             </section>
             <div id="collection-list">
                 <div id="city-pill-bar" class="city-pill-scroll" aria-label="按城市筛选"></div>
+                <h4 class="collection-title">当前小组收藏</h4>
+                <div id="collection-group-identity" class="collection-group-identity">未加入小组</div>
                 <h4 class="collection-title">我的收藏</h4>
                 <div id="collection-tree"></div>
             </div>
