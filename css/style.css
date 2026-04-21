@@ -1,18 +1,21 @@
 /* css/style.css — Gemini / Google Material 风格 */
 :root {
-    --primary-color: #1a73e8;
+    --theme-primary: #1a73e8;
+    --app-bg-color: #FDF6EC;
+    --primary-color: var(--theme-primary);
     --accent-color: #e74c3c;
     --bg-light: #f8f9fa;
     --gem-text: #202124;
     --gem-text-secondary: #5f6368;
     --gem-border: #dadce0;
     --gem-surface: #ffffff;
-    --gem-surface-dim: #f8f9fa;
+    --gem-surface-dim: var(--app-bg-color);
     --gem-hover: #e8eaed;
     --gem-hover-primary: #e8f0fe;
     --gem-topbar-h: 64px;
     --gem-side-w: 304px;
     --gem-font: "Roboto", "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+    --gem-title-font: "ui-rounded", "SF Pro Rounded", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
 }
 
 *, *::before, *::after {
@@ -68,6 +71,49 @@ body, html {
     min-width: 0;
 }
 
+.gem-topbar-actions {
+    margin-left: auto;
+    position: relative;
+}
+
+.theme-picker-toggle {
+    color: var(--primary-color);
+}
+
+.theme-picker-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 260;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 14px;
+    border: 1px solid var(--gem-border);
+    background: var(--gem-surface);
+    box-shadow: 0 8px 24px rgba(60, 64, 67, 0.18);
+}
+
+.theme-picker-panel[hidden] {
+    display: none !important;
+}
+
+.theme-swatch {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    background: var(--swatch-color);
+    box-shadow: 0 0 0 1px #d2d6dc;
+    cursor: pointer;
+    padding: 0;
+}
+
+.theme-swatch.active {
+    box-shadow: 0 0 0 2px var(--primary-color);
+}
+
 .gem-topbar-logo {
     display: flex;
     align-items: center;
@@ -81,8 +127,9 @@ body, html {
 
 .gem-topbar-title {
     font-size: 1.375rem;
-    font-weight: 400;
-    letter-spacing: -0.03em;
+    font-family: var(--gem-title-font);
+    font-weight: 600;
+    letter-spacing: 0.04em;
     color: var(--gem-text);
     white-space: nowrap;
     overflow: hidden;
@@ -152,14 +199,16 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     bottom: 0;
     width: min(var(--gem-side-w), 100vw);
     z-index: 160;
-    background: var(--gem-surface);
-    border-right: 1px solid var(--gem-border);
+    background: rgba(255, 255, 255, 0.74);
+    border-right: 1px solid rgba(255, 255, 255, 0.58);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     transform: translateX(-100%);
     transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 2px 0 12px rgba(60, 64, 67, 0.08);
+    box-shadow: 4px 0 18px rgba(80, 92, 110, 0.16);
 }
 
 .gem-side-panel.open {
@@ -179,9 +228,10 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 .gem-drawer-title {
     margin: 0;
     font-size: 1rem;
-    font-weight: 500;
+    font-family: var(--gem-title-font);
+    font-weight: 700;
     color: var(--gem-text);
-    letter-spacing: -0.01em;
+    letter-spacing: 0.06em;
 }
 
 .gem-drawer-close {
@@ -449,7 +499,8 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     font-size: 11px;
     font-weight: 600;
     color: var(--gem-text-secondary);
-    letter-spacing: 0.06em;
+    font-family: var(--gem-title-font);
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     flex-shrink: 0;
     background: var(--gem-surface);
@@ -908,13 +959,29 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     text-align: center;
 }
 
-.map-dot {
-    width: 11px;
-    height: 11px;
+.map-marker-card {
+    width: 38px;
+    height: 38px;
     border-radius: 999px;
-    background: var(--primary-color);
-    border: 2px solid #fff;
-    box-shadow: 0 1px 4px rgba(26, 115, 232, 0.45);
+    background: #fff;
+    border: 2px solid rgba(255, 255, 255, 0.95);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 16px rgba(52, 77, 116, 0.22), 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    transform: translateY(0);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.map-marker-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 24px rgba(52, 77, 116, 0.28), 0 1px 0 rgba(255, 255, 255, 0.95) inset;
+}
+
+.map-marker-emoji {
+    font-size: 20px;
+    line-height: 1;
 }
 
 .map-name-badge {

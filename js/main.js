@@ -2,6 +2,7 @@
 window.onload = async function() {
     console.log("🚀 全国美食私藏地图 - 启动中...");
     try {
+        initThemePicker();
         await loadAMapScript();
         initMapEngine('container');
         if (window.GroupManager && typeof window.GroupManager.init === 'function') {
@@ -41,4 +42,67 @@ function showMapLoadError(message) {
     banner.className = 'map-load-error';
     banner.textContent = message;
     document.body.appendChild(banner);
+}
+
+function initThemePicker() {
+    const THEME_BG_KEY = 'food_theme_bg_v1';
+    const THEME_PRIMARY_KEY = 'food_theme_primary_v1';
+    const root = document.documentElement;
+    const toggleBtn = document.getElementById('theme-picker-toggle');
+    const panel = document.getElementById('theme-picker-panel');
+    if (!toggleBtn || !panel) return;
+
+    const swatches = Array.from(panel.querySelectorAll('.theme-swatch'));
+
+    function applyTheme(bg, primary) {
+        if (bg) root.style.setProperty('--app-bg-color', bg);
+        if (primary) {
+            root.style.setProperty('--theme-primary', primary);
+            root.style.setProperty('--primary-color', primary);
+        }
+    }
+
+    function markActive(bg) {
+        swatches.forEach((btn) => {
+            btn.classList.toggle('active', String(btn.dataset.themeBg || '').toUpperCase() === String(bg || '').toUpperCase());
+        });
+    }
+
+    const savedBg = localStorage.getItem(THEME_BG_KEY);
+    const savedPrimary = localStorage.getItem(THEME_PRIMARY_KEY);
+    if (savedBg) {
+        applyTheme(savedBg, savedPrimary || '#1A73E8');
+        markActive(savedBg);
+    } else {
+        markActive('#FDF6EC');
+    }
+
+    function setPanelOpen(open) {
+        panel.hidden = !open;
+        toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
+    toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setPanelOpen(panel.hidden);
+    });
+
+    swatches.forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const bg = btn.dataset.themeBg || '#FDF6EC';
+            const primary = btn.dataset.themePrimary || '#1A73E8';
+            applyTheme(bg, primary);
+            markActive(bg);
+            localStorage.setItem(THEME_BG_KEY, bg);
+            localStorage.setItem(THEME_PRIMARY_KEY, primary);
+            setPanelOpen(false);
+        });
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!panel.hidden && !panel.contains(e.target) && e.target !== toggleBtn) {
+            setPanelOpen(false);
+        }
+    });
 }

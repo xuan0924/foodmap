@@ -6,6 +6,18 @@ const markerDataRegistry = new Map();
 const visibleMarkerIds = new Set();
 let activeMarkerId = null;
 
+function getMarkerEmoji(item) {
+    const text = `${item && item.category ? item.category : ''}${item && item.name ? item.name : ''}`;
+    if (/咖啡|coffee|拿铁|美式/i.test(text)) return '☕';
+    if (/甜|蛋糕|面包|dessert|烘焙/i.test(text)) return '🍰';
+    if (/火锅|麻辣烫|串串/i.test(text)) return '🍲';
+    if (/烧烤|烤肉|bbq/i.test(text)) return '🍢';
+    if (/奶茶|饮品|果汁|茶饮/i.test(text)) return '🧋';
+    if (/日料|寿司|刺身/i.test(text)) return '🍣';
+    if (/面|粉|米线|拉面/i.test(text)) return '🍜';
+    return '🍽️';
+}
+
 /**
  * 初始化地图引擎
  * @param {string} containerId - HTML 中容器的 ID
@@ -50,7 +62,7 @@ function renderFoodMarker(item) {
 
     const marker = new AMap.Marker({
         position: [item.lng, item.lat],
-        content: '<div class="map-dot"></div>',
+        content: `<div class="map-marker-card" title="${item.name || ''}"><span class="map-marker-emoji">${getMarkerEmoji(item)}</span></div>`,
         anchor: 'bottom-center',
         offset: new AMap.Pixel(0, 0)
     });
