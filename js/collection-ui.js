@@ -60,7 +60,6 @@ const CollectionUI = {
             return btn;
         };
 
-        bar.appendChild(mkPill('选择小组', ''));
         groups.forEach((group) => {
             bar.appendChild(mkPill(group.name || '未命名小组', group.id));
         });
