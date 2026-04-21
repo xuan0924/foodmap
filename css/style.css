@@ -20,7 +20,7 @@
     --gem-topbar-h: 64px;
     --gem-side-w: 304px;
     --gem-font: "Roboto", "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
-    --gem-title-font: "ui-rounded", "SF Pro Rounded", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+    --gem-title-font: "Roboto", "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
 *, *::before, *::after {
@@ -132,9 +132,9 @@ body, html {
 
 .gem-topbar-title {
     font-size: 1.375rem;
-    font-family: var(--gem-title-font);
-    font-weight: 600;
-    letter-spacing: 0.04em;
+    font-family: var(--gem-font);
+    font-weight: 400;
+    letter-spacing: -0.03em;
     color: var(--gem-text);
     white-space: nowrap;
     overflow: hidden;
@@ -233,10 +233,10 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 .gem-drawer-title {
     margin: 0;
     font-size: 1rem;
-    font-family: var(--gem-title-font);
-    font-weight: 700;
+    font-family: var(--gem-font);
+    font-weight: 500;
     color: var(--gem-text);
-    letter-spacing: 0.06em;
+    letter-spacing: -0.01em;
 }
 
 .gem-drawer-close {
@@ -504,25 +504,11 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     font-size: 11px;
     font-weight: 600;
     color: var(--gem-text-secondary);
-    font-family: var(--gem-title-font);
-    letter-spacing: 0.1em;
+    font-family: var(--gem-font);
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     flex-shrink: 0;
     background: var(--gem-surface);
-}
-
-.collection-group-identity {
-    margin: 0 20px 8px;
-    padding: 8px 10px;
-    border-radius: 10px;
-    background: var(--theme-soft-bg);
-    color: var(--theme-on-soft);
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.collection-group-identity:empty {
-    display: none;
 }
 
 .group-panel {

@@ -1,6 +1,6 @@
 // js/main.js
 window.onload = async function() {
-    console.log("🚀 全国美食私藏地图 - 启动中...");
+    console.log("🚀 吃货同步协议 - 启动中...");
     try {
         initThemePicker();
         await loadAMapScript();

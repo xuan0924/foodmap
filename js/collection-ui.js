@@ -260,13 +260,8 @@ const CollectionUI = {
 
         const full = this.getCurrentCollection();
         const title = document.querySelector('#collection-list .collection-title');
-        const identity = document.getElementById('collection-group-identity');
         if (title) {
             title.textContent = '我的收藏';
-        }
-        if (identity) {
-            const current = groups.find((g) => g.id === this.selectedGroupId);
-            identity.textContent = current ? `当前查看：${current.name}（代号：${current.inviteCode || '暂无'}）` : '';
         }
 
         if (!full.length) {

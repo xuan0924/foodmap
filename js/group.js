@@ -109,10 +109,7 @@
     }
 
     function refreshGroupLabel() {
-        const collectionGroup = document.getElementById('collection-group-identity');
-        if (collectionGroup) {
-            collectionGroup.textContent = '';
-        }
+        // 预留：当前版本不显示侧栏小组状态行
     }
 
     function afterGroupChanged() {
@@ -180,7 +177,7 @@
         joinConfirm.addEventListener('click', () => {
             const code = normalizeCode(joinInput.value);
             if (code.length !== 6) {
-                setStatus('请输入 6 位数字字母代号。', true);
+                setStatus('请输入 6 位数字字母密钥。', true);
                 return;
             }
             const groups = loadState();
@@ -188,7 +185,7 @@
             const target = groups.find((g) => g.inviteCode === code);
             if (!target) {
                 saveState(groups);
-                setStatus('未找到该小组，请检查代号是否正确或已过期。', true);
+                setStatus('未找到该小组，请检查密钥是否正确或已过期。', true);
                 return;
             }
             saveState(groups);
