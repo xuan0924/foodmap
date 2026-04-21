@@ -685,7 +685,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     padding: 4px 0 8px 10px;
     margin-left: 6px;
     border-left: 3px solid var(--gem-border);
-    background: #fafbfc;
+    background: var(--gem-surface-dim);
 }
 
 .city-body.open {
@@ -954,7 +954,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     width: 38px;
     height: 38px;
     border-radius: 999px;
-    background: #fff;
+    background: var(--gem-surface);
     border: 2px solid rgba(255, 255, 255, 0.95);
     display: inline-flex;
     align-items: center;

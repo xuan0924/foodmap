@@ -88,6 +88,9 @@ function initThemePicker() {
             root.style.setProperty('--theme-soft-bg', toRgba(primary, 0.12));
             root.style.setProperty('--theme-soft-bg-strong', toRgba(primary, 0.2));
             root.style.setProperty('--theme-on-soft', toRgba(primary, 0.88));
+            root.style.setProperty('--gem-surface', toRgba(primary, 0.05));
+            root.style.setProperty('--gem-hover', toRgba(primary, 0.1));
+            root.style.setProperty('--gem-surface-dim', toRgba(primary, 0.09));
         }
         if (border) {
             root.style.setProperty('--theme-border', border);
