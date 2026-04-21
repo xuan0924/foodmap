@@ -46,7 +46,7 @@
 
     <aside id="side-panel" class="gem-side-panel" aria-hidden="true" aria-label="收藏夹">
         <div class="gem-drawer-head">
-            <h2 class="gem-drawer-title">收藏</h2>
+            <h2 class="gem-drawer-title">菜单</h2>
             <button type="button" class="gem-icon-btn gem-drawer-close" id="drawer-close-btn" aria-label="关闭侧边栏">
                 <svg class="gem-ico" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
                     <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
@@ -55,9 +55,10 @@
         </div>
         <div class="drawer-body gem-drawer-body">
             <div id="collection-list">
-                <div id="city-pill-bar" class="city-pill-scroll" aria-label="按城市筛选"></div>
-                <h4 class="collection-title">我的收藏</h4>
-                <div id="collection-tree"></div>
+                <h4 class="collection-title">当前版本</h4>
+                <div id="collection-tree">
+                    <div class="collection-empty">已精简为武汉搜索模式，其他功能暂时关闭。</div>
+                </div>
             </div>
         </div>
     </aside>
@@ -66,34 +67,20 @@
         <div class="search-float-row">
             <div class="search-city-group">
                 <label class="search-city-label" for="searchCityInput">城市</label>
-                <input type="text" id="searchCityInput" class="search-city-input" list="search-city-suggestions" placeholder="如：武汉" autocomplete="off" aria-label="搜索城市">
-                <datalist id="search-city-suggestions">
-                    <option value="武汉">
-                    <option value="北京">
-                    <option value="上海">
-                    <option value="广州">
-                    <option value="深圳">
-                    <option value="成都">
-                    <option value="杭州">
-                    <option value="南京">
-                    <option value="西安">
-                    <option value="重庆">
-                </datalist>
-                <button type="button" id="searchCityApply" class="search-city-apply">定位</button>
+                <input type="text" id="searchCityInput" class="search-city-input" value="武汉" readonly aria-label="搜索城市">
+                <button type="button" id="searchCityApply" class="search-city-apply" disabled>已锁定</button>
             </div>
             <div class="search-box search-box-main">
-                <input type="text" id="searchInput" placeholder="在当前城市搜索餐饮…" autocomplete="off">
+                <input type="text" id="searchInput" placeholder="在武汉搜索餐饮…" autocomplete="off">
             </div>
         </div>
-        <p id="search-city-hint" class="search-city-hint" hidden role="status"></p>
+        <p id="search-city-hint" class="search-city-hint" role="status">当前仅支持武汉搜索。</p>
         <div id="result-list"></div>
     </div>
 
     <div id="container"></div>
 
     <script src="js/map-engine.js"></script>
-    <script src="js/storage.js"></script>
-    <script src="js/collection-ui.js"></script>
     <script src="js/search.js"></script>
     <script src="js/main.js"></script>
 </body>
