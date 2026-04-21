@@ -1,8 +1,8 @@
 // js/collection-ui.js — 收藏夹 UI：城市 Pill 筛选 + 列表树 + 与地图联动
 
 const CollectionUI = {
-    /** @type {string|null} null / CITY_FILTER_ALL 表示「全部」 */
     selectedCityKey: CITY_FILTER_ALL,
+    selectedGroupId: CITY_FILTER_ALL,
 
     formatCityDisplay(cityKey) {
         if (!cityKey || cityKey === '未知城市') return cityKey || '未知城市';
@@ -15,32 +15,36 @@ const CollectionUI = {
         const bar = document.getElementById('city-pill-bar');
         if (!bar) return;
 
-        const cities = getUniqueCitiesFromCollection();
-        const validKeys = new Set(cities);
-        if (this.selectedCityKey !== CITY_FILTER_ALL && !validKeys.has(this.selectedCityKey)) {
-            this.selectedCityKey = CITY_FILTER_ALL;
+        const groups =
+            window.GroupManager && typeof window.GroupManager.getJoinedGroups === 'function'
+                ? window.GroupManager.getJoinedGroups()
+                : [];
+        const validGroupIds = new Set(groups.map((g) => g.id));
+        if (this.selectedGroupId !== CITY_FILTER_ALL && !validGroupIds.has(this.selectedGroupId)) {
+            this.selectedGroupId = CITY_FILTER_ALL;
         }
 
         bar.innerHTML = '';
 
-        const mkPill = (label, cityData, isAll) => {
+        const mkPill = (label, groupId, isAll) => {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'city-pill';
             if (isAll) {
                 btn.dataset.cityAll = '1';
             } else {
-                btn.dataset.city = cityData;
+                btn.dataset.group = groupId;
             }
             btn.textContent = label;
             const active =
                 isAll
-                    ? this.selectedCityKey === CITY_FILTER_ALL
-                    : this.selectedCityKey === cityData;
+                    ? this.selectedGroupId === CITY_FILTER_ALL
+                    : this.selectedGroupId === groupId;
             if (active) btn.classList.add('active');
 
             btn.addEventListener('click', () => {
-                this.selectedCityKey = isAll ? CITY_FILTER_ALL : cityData;
+                this.selectedGroupId = isAll ? CITY_FILTER_ALL : groupId;
+                this.selectedCityKey = CITY_FILTER_ALL;
                 this.updateCityFilter();
                 this.renderCollectionTree();
                 this.syncMapWithFilter();
@@ -49,13 +53,23 @@ const CollectionUI = {
         };
 
         bar.appendChild(mkPill('全部', null, true));
-        cities.forEach((cityKey) => {
-            bar.appendChild(mkPill(this.formatCityDisplay(cityKey), cityKey, false));
+        groups.forEach((group) => {
+            bar.appendChild(mkPill(group.name || '未命名小组', group.id, false));
         });
     },
 
+    getCurrentCollection() {
+        if (this.selectedGroupId === CITY_FILTER_ALL) {
+            return getAllGroupCollections();
+        }
+        return getStoredCollectionByGroupId(this.selectedGroupId).map((item) => ({
+            ...item,
+            __groupId: this.selectedGroupId
+        }));
+    },
+
     syncMapWithFilter() {
-        const full = getStoredCollection();
+        const full = this.getCurrentCollection();
         const filtered = filterCollectionByCity(full, this.selectedCityKey);
 
         hideAllMarkers();
@@ -73,7 +87,7 @@ const CollectionUI = {
     },
 
     redrawMarkersOnly() {
-        const full = getStoredCollection();
+        const full = this.getCurrentCollection();
         const filtered = filterCollectionByCity(full, this.selectedCityKey);
         hideAllMarkers();
         filtered.forEach((item) => MapEngine.renderMarker(item));
@@ -159,7 +173,8 @@ const CollectionUI = {
                 deleteBtn.textContent = '🗑';
                 deleteBtn.setAttribute('aria-label', `删除收藏 ${item.name}`);
                 deleteBtn.addEventListener('click', () => {
-                    removeFromCollection(item);
+                    const targetGroupId = item.__groupId || (window.GroupManager && window.GroupManager.getActiveGroupId ? window.GroupManager.getActiveGroupId() : 'solo_local');
+                    removeFromCollectionByGroupId(targetGroupId, item);
                     removeFoodMarker(item);
                     CollectionUI.refresh();
                 });
@@ -179,7 +194,7 @@ const CollectionUI = {
         const tree = document.getElementById('collection-tree');
         if (!tree) return;
 
-        const full = getStoredCollection();
+        const full = this.getCurrentCollection();
         tree.innerHTML = '';
 
         if (!full.length) {
@@ -224,10 +239,27 @@ const CollectionUI = {
     },
 
     refresh() {
-        const full = getStoredCollection();
+        const full = this.getCurrentCollection();
         const title = document.querySelector('#collection-list .collection-title');
+        const identity = document.getElementById('collection-group-identity');
         if (title) {
             title.textContent = '我的收藏';
+        }
+        if (identity) {
+            if (this.selectedGroupId === CITY_FILTER_ALL) {
+                const groups =
+                    window.GroupManager && typeof window.GroupManager.getJoinedGroups === 'function'
+                        ? window.GroupManager.getJoinedGroups()
+                        : [];
+                identity.textContent = groups.length ? `已加入 ${groups.length} 个小组` : '未加入小组';
+            } else {
+                const groups =
+                    window.GroupManager && typeof window.GroupManager.getJoinedGroups === 'function'
+                        ? window.GroupManager.getJoinedGroups()
+                        : [];
+                const current = groups.find((g) => g.id === this.selectedGroupId);
+                identity.textContent = current ? `当前查看：${current.name}` : '当前查看：未知小组';
+            }
         }
 
         if (!full.length) {

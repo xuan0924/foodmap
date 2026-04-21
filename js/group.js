@@ -98,14 +98,14 @@
     }
 
     function refreshGroupLabel() {
-        const label = document.getElementById('group-current-label');
         const collectionGroup = document.getElementById('collection-group-identity');
         const groups = loadState();
-        const active = getActiveGroup(groups);
-        const text = active ? `${active.name || '未命名小组'}` : '未加入';
-        if (label) label.textContent = text;
         if (collectionGroup) {
-            collectionGroup.textContent = active ? `当前小组：${active.name}（点击上方小组名查看代号）` : '未加入小组';
+            if (!groups.length) {
+                collectionGroup.textContent = '未加入小组';
+                return;
+            }
+            collectionGroup.textContent = `已加入 ${groups.length} 个小组`;
         }
     }
 
@@ -116,23 +116,19 @@
     function initGroupUI() {
         const createBtn = document.getElementById('group-create-btn');
         const joinBtn = document.getElementById('group-join-btn');
-        const currentLabel = document.getElementById('group-current-label');
         const createBox = document.getElementById('group-create-box');
         const joinBox = document.getElementById('group-join-box');
-        const codeBox = document.getElementById('group-code-box');
-        const codeDisplay = document.getElementById('group-code-display');
         const nameInput = document.getElementById('group-name-input');
         const createConfirm = document.getElementById('group-create-confirm');
         const joinInput = document.getElementById('group-join-input');
         const joinConfirm = document.getElementById('group-join-confirm');
-        if (!createBtn || !joinBtn || !currentLabel || !createBox || !joinBox || !codeBox || !codeDisplay || !nameInput || !createConfirm || !joinInput || !joinConfirm) return;
+        if (!createBtn || !joinBtn || !createBox || !joinBox || !nameInput || !createConfirm || !joinInput || !joinConfirm) return;
 
         refreshGroupLabel();
 
         createBtn.addEventListener('click', () => {
             createBox.hidden = false;
             joinBox.hidden = true;
-            codeBox.hidden = true;
             nameInput.value = '';
             setStatus('');
             nameInput.focus();
@@ -141,7 +137,6 @@
         joinBtn.addEventListener('click', () => {
             createBox.hidden = true;
             joinBox.hidden = false;
-            codeBox.hidden = true;
             setStatus('');
             joinInput.focus();
         });
@@ -165,8 +160,7 @@
             setActiveGroupId(group.id);
 
             createBox.hidden = true; // 创建后立即消失
-            codeBox.hidden = true;
-            setStatus(`已创建小组「${name}」。点击上方小组名可查看当前代号。`);
+            setStatus(`已创建小组「${name}」，代号：${group.inviteCode}（9小时自动刷新）。`);
             refreshGroupLabel();
             afterGroupChanged();
         });
@@ -192,33 +186,21 @@
             saveState(groups);
             setActiveGroupId(target.id);
             joinBox.hidden = true;
-            codeBox.hidden = true;
             setStatus(`已加入小组「${target.name}」。`);
             refreshGroupLabel();
             afterGroupChanged();
-        });
-
-        currentLabel.addEventListener('click', () => {
-            const groups = loadState();
-            const active = getActiveGroup(groups);
-            if (!active) {
-                setStatus('你还未加入小组。', true);
-                return;
-            }
-            const rotated = refreshInviteCodeIfExpired(active, groups);
-            if (rotated) saveState(groups);
-            codeDisplay.textContent = active.inviteCode;
-            createBox.hidden = true;
-            joinBox.hidden = true;
-            codeBox.hidden = false;
-            setStatus(rotated ? '代号已自动刷新（每 9 小时刷新一次）。' : '');
-            refreshGroupLabel();
         });
     }
 
     window.GroupManager = {
         init: initGroupUI,
         getActiveGroupId,
+        getJoinedGroups: function () {
+            const groups = loadState();
+            groups.forEach((g) => refreshInviteCodeIfExpired(g, groups));
+            saveState(groups);
+            return groups.slice().sort((a, b) => Number(a.createdAt || 0) - Number(b.createdAt || 0));
+        },
         getActiveGroupCode: function () {
             const groups = loadState();
             const active = getActiveGroup(groups);

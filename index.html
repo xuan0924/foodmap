@@ -57,7 +57,6 @@
             <section class="group-panel" aria-label="小组设置">
                 <h4 class="collection-title">小组设置</h4>
                 <div class="group-panel-inner">
-                    <div class="group-current">当前小组：<button type="button" id="group-current-label" class="group-current-trigger">未加入</button></div>
                     <div class="group-actions">
                         <button type="button" id="group-create-btn" class="group-btn">创建小组</button>
                         <button type="button" id="group-join-btn" class="group-btn">加入小组</button>
@@ -71,16 +70,12 @@
                         <input id="group-join-input" class="group-join-input" type="text" maxlength="6" placeholder="输入 6 位代号">
                         <button type="button" id="group-join-confirm" class="group-join-confirm">确认加入</button>
                     </div>
-                    <div id="group-code-box" class="group-box" hidden>
-                        <div class="group-box-title">当前有效小组代号（9小时自动刷新）</div>
-                        <div id="group-code-display" class="group-code-display">------</div>
-                    </div>
                     <p id="group-status" class="group-status" hidden role="status"></p>
                 </div>
             </section>
             <div id="collection-list">
-                <div id="city-pill-bar" class="city-pill-scroll" aria-label="按城市筛选"></div>
-                <h4 class="collection-title">当前小组收藏</h4>
+                <div id="city-pill-bar" class="city-pill-scroll" aria-label="按小组筛选"></div>
+                <h4 class="collection-title">我加入的小组</h4>
                 <div id="collection-group-identity" class="collection-group-identity">未加入小组</div>
                 <h4 class="collection-title">我的收藏</h4>
                 <div id="collection-tree"></div>

@@ -12,6 +12,42 @@ function getCollectionStorageKey() {
     return `${COLLECTION_STORAGE_KEY}:${groupId}`;
 }
 
+function getCollectionStorageKeyByGroupId(groupId) {
+    const gid = String(groupId || 'solo_local').trim() || 'solo_local';
+    return `${COLLECTION_STORAGE_KEY}:${gid}`;
+}
+
+function getStoredCollectionByGroupId(groupId) {
+    const raw = localStorage.getItem(getCollectionStorageKeyByGroupId(groupId));
+    if (!raw) return [];
+    try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        console.warn('⚠️ 本地收藏数据损坏，已忽略。', error);
+        return [];
+    }
+}
+
+function getAllGroupCollections() {
+    if (!window.GroupManager || typeof window.GroupManager.getJoinedGroups !== 'function') {
+        return getStoredCollection().map((item) => ({ ...item, __groupId: 'solo_local', __groupName: '本地' }));
+    }
+    const groups = window.GroupManager.getJoinedGroups();
+    const merged = [];
+    groups.forEach((group) => {
+        const list = getStoredCollectionByGroupId(group.id);
+        list.forEach((item) => {
+            merged.push({
+                ...item,
+                __groupId: group.id,
+                __groupName: group.name || '未命名小组'
+            });
+        });
+    });
+    return merged;
+}
+
 function getStoredCollection() {
     const raw = localStorage.getItem(getCollectionStorageKey());
     if (!raw) return [];
@@ -34,6 +70,18 @@ function getCityKeyForItem(item) {
  */
 function getUniqueCitiesFromCollection() {
     const list = getStoredCollection();
+    const set = new Set();
+    list.forEach((item) => {
+        set.add(getCityKeyForItem(item));
+    });
+    return Array.from(set).sort((a, b) => {
+        if (a === '未知城市') return 1;
+        if (b === '未知城市') return -1;
+        return a.localeCompare(b, 'zh-CN');
+    });
+}
+
+function getUniqueCitiesFromList(list) {
     const set = new Set();
     list.forEach((item) => {
         set.add(getCityKeyForItem(item));
@@ -113,4 +161,21 @@ function removeFromCollection(item) {
     if (idx < 0) return;
     list.splice(idx, 1);
     localStorage.setItem(getCollectionStorageKey(), JSON.stringify(list));
+}
+
+function removeFromCollectionByGroupId(groupId, item) {
+    const key = getCollectionStorageKeyByGroupId(groupId);
+    const raw = localStorage.getItem(key);
+    if (!raw) return;
+    let list = [];
+    try {
+        const parsed = JSON.parse(raw);
+        list = Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        return;
+    }
+    const idx = findCollectionIndex(list, item);
+    if (idx < 0) return;
+    list.splice(idx, 1);
+    localStorage.setItem(key, JSON.stringify(list));
 }
