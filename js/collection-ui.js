@@ -259,9 +259,10 @@ const CollectionUI = {
         this.ensureSelectedGroup(groups);
 
         const full = this.getCurrentCollection();
-        const title = document.querySelector('#collection-list .collection-title');
-        if (title) {
-            title.textContent = '我的收藏';
+        const identity = document.getElementById('collection-group-identity');
+        if (identity) {
+            const current = groups.find((g) => g.id === this.selectedGroupId);
+            identity.textContent = current ? `当前密钥：${current.inviteCode || '暂无'}` : '';
         }
 
         if (!full.length) {

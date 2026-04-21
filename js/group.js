@@ -118,6 +118,8 @@
 
     function initGroupUI() {
         if (uiInitialized) return;
+        const settingsToggle = document.getElementById('group-settings-toggle');
+        const settingsPanel = document.getElementById('group-settings-panel');
         const createBtn = document.getElementById('group-create-btn');
         const joinBtn = document.getElementById('group-join-btn');
         const createBox = document.getElementById('group-create-box');
@@ -128,6 +130,14 @@
         const joinConfirm = document.getElementById('group-join-confirm');
         if (!createBtn || !joinBtn || !createBox || !joinBox || !nameInput || !createConfirm || !joinInput || !joinConfirm) return;
         uiInitialized = true;
+
+        if (settingsToggle && settingsPanel) {
+            settingsToggle.addEventListener('click', () => {
+                const isOpen = !settingsPanel.hidden;
+                settingsPanel.hidden = isOpen;
+                settingsToggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+            });
+        }
 
         refreshGroupLabel();
 
