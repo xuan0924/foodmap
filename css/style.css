@@ -204,7 +204,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     bottom: 0;
     width: min(var(--gem-side-w), 100vw);
     z-index: 160;
-    background: rgba(255, 255, 255, 0.74);
+    background: rgba(255, 255, 255, 0.52);
     border-right: 1px solid var(--gem-border);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -248,7 +248,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     flex: 1;
     min-height: 0;
     overflow: hidden;
-    background: var(--gem-surface-dim);
+    background: rgba(255, 255, 255, 0.18);
     display: flex;
     flex-direction: column;
 }
@@ -436,7 +436,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
     border-bottom: 1px solid var(--gem-border);
-    background: var(--gem-surface);
+    background: rgba(255, 255, 255, 0.26);
     flex-shrink: 0;
     flex-grow: 0;
 }
@@ -508,12 +508,12 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     letter-spacing: 0.06em;
     text-transform: uppercase;
     flex-shrink: 0;
-    background: var(--gem-surface);
+    background: rgba(255, 255, 255, 0.28);
 }
 
 .group-panel {
     border-bottom: 1px solid var(--gem-border);
-    background: var(--gem-surface);
+    background: rgba(255, 255, 255, 0.24);
 }
 
 .group-panel-inner {
@@ -685,7 +685,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     padding: 4px 0 8px 10px;
     margin-left: 6px;
     border-left: 3px solid var(--gem-border);
-    background: var(--gem-surface-dim);
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .city-body.open {
