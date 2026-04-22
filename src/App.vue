@@ -13,11 +13,11 @@ export default {
     --node-green: #A8D5BA;
     --node-blue: #92A8D1;
     --text-deep: #3D3D3D;
-    --theme-primary: #1a73e8;
+    --theme-primary: var(--accent-orange);
     --app-bg-color: var(--bg-apricot);
     --gem-text: var(--text-deep);
     --gem-text-secondary: rgba(61, 61, 61, 0.72);
-    --theme-border: #9ab8e6;
+    --theme-border: #F5BC94;
     --protocol-accent: var(--theme-primary);
     --protocol-bg: var(--app-bg-color);
     --protocol-text: var(--gem-text);

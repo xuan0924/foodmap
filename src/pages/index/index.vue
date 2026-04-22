@@ -10,46 +10,44 @@
                 <text class="title cream-title">吃货同步协议</text>
                 <text class="subtitle">{{ loginSubtitle }}</text>
             </view>
-            <view class="topbar-actions">
+            <view class="topbar-actions glass-card">
                 <button class="topbar-icon-btn sidebar-btn" @click="toggleSidebar">
                     <text class="topbar-icon">☰</text>
                 </button>
                 <button class="topbar-icon-btn avatar-btn" @click="toggleLoginPanel">
                     <text class="topbar-icon">👤</text>
                 </button>
-                <button class="topbar-icon-btn palette-btn" @click="toggleThemePanel">
-                    <text class="topbar-icon">🎨</text>
-                </button>
             </view>
-            <view v-if="showThemePanel" class="theme-panel glass-card">
-                <view class="theme-row">
-                    <button
-                        v-for="theme in themePresets"
-                        :key="theme.id"
-                        class="theme-dot"
-                        :style="{ background: theme.bg, borderColor: activeTheme === theme.id ? theme.primary : '#fff' }"
-                        @click="applyTheme(theme)"
-                    />
-                </view>
+        </view>
+
+        <view class="search-float">
+            <view class="search-capsule glass-card">
+                <input
+                    v-model="searchKeyword"
+                    class="search-input"
+                    placeholder="搜索小组或节点名称"
+                    confirm-type="search"
+                />
+                <text class="search-icon">🔍</text>
             </view>
         </view>
 
         <view v-if="showSidebar" class="sidebar-overlay" @click.self="showSidebar = false">
             <view class="sidebar-panel gem-side-panel">
                 <view class="sidebar-head">
-                    <text class="sidebar-title cream-title">节点清单</text>
+                    <text class="sidebar-title cream-title">小组切换</text>
                     <button class="sidebar-close" @click="showSidebar = false">✕</button>
                 </view>
                 <scroll-view scroll-y class="sidebar-list">
                     <view
-                        v-for="item in nodes"
-                        :key="item.id"
+                        v-for="group in joinedGroups"
+                        :key="group.id"
                         class="sidebar-item"
-                        :class="{ 'is-active': activeNodeId === item.id }"
-                        @click="focusNode(item)"
+                        :class="{ 'is-active': activeGroupId === group.id }"
+                        @click="switchGroup(group.id)"
                     >
-                        <text class="sidebar-item-name">{{ item.name }}</text>
-                        <text class="sidebar-item-sub">{{ item.address || "未填写地址" }}</text>
+                        <text class="sidebar-item-name">{{ group.name }}</text>
+                        <text class="sidebar-item-sub">{{ group.count }} 个节点</text>
                     </view>
                 </scroll-view>
             </view>
@@ -101,10 +99,6 @@
             </view>
         </view>
 
-        <view class="bottom-card glass-card">
-            <button class="refresh-btn" @click="loadNodes">刷新节点</button>
-            <button v-if="isLoggedIn" class="logout-btn" @click="handleLogout">退出</button>
-        </view>
     </view>
 </template>
 
@@ -134,16 +128,9 @@ export default {
             h5Markers: [],
             session: null,
             showLoginPanel: false,
-            showThemePanel: false,
             showSidebar: false,
-            activeNodeId: null,
-            activeTheme: "cream",
-            themePresets: [
-                { id: "cream", bg: "#FFF9F0", primary: "#1A73E8", border: "#9AB8E6" },
-                { id: "mint", bg: "#F3F8EE", primary: "#2E7D32", border: "#8FCF8A" },
-                { id: "lavender", bg: "#F4F1FB", primary: "#5E35B1", border: "#B59DE5" },
-                { id: "sunset", bg: "#FFF2E8", primary: "#EF6C00", border: "#F1AA6B" }
-            ]
+            activeGroupId: "all",
+            searchKeyword: ""
         };
     },
     computed: {
@@ -164,10 +151,42 @@ export default {
             return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
                 SUPABASE_CONFIG.wechatBridgeUrl
             )}`;
+        },
+        joinedGroups() {
+            const counter = new Map();
+            this.nodes.forEach((n) => {
+                const key = (n.group || "默认小组").trim();
+                counter.set(key, (counter.get(key) || 0) + 1);
+            });
+            return [
+                { id: "all", name: "全部小组", count: this.nodes.length },
+                ...Array.from(counter.entries()).map(([name, count]) => ({
+                    id: name,
+                    name,
+                    count
+                }))
+            ];
+        },
+        filteredNodes() {
+            const keyword = (this.searchKeyword || "").trim().toLowerCase();
+            return this.nodes.filter((n) => {
+                const inGroup = this.activeGroupId === "all" || n.group === this.activeGroupId;
+                if (!inGroup) return false;
+                if (!keyword) return true;
+                return [n.name, n.address, n.group].some((v) => (v || "").toLowerCase().includes(keyword));
+            });
+        }
+    },
+    watch: {
+        searchKeyword() {
+            this.renderMpMarkers();
+            // #ifdef H5
+            this.renderH5Markers();
+            // #endif
         }
     },
     onLoad() {
-        this.restoreTheme();
+        this.applyTheme();
         this.tryRestoreSession();
         this.loadNodes();
     },
@@ -183,51 +202,39 @@ export default {
     methods: {
         toggleLoginPanel() {
             this.showLoginPanel = !this.showLoginPanel;
-            this.showThemePanel = false;
-        },
-        toggleThemePanel() {
-            this.showThemePanel = !this.showThemePanel;
-            if (this.showThemePanel) this.showLoginPanel = false;
         },
         toggleSidebar() {
             this.showSidebar = !this.showSidebar;
-            if (this.showSidebar) this.showThemePanel = false;
         },
-        focusNode(item) {
-            if (!item) return;
-            this.activeNodeId = item.id;
+        switchGroup(groupId) {
+            this.activeGroupId = groupId || "all";
             this.showSidebar = false;
+            this.renderMpMarkers();
             // #ifdef H5
-            if (this.h5Map && Number.isFinite(item.lng) && Number.isFinite(item.lat)) {
-                this.h5Map.setCenter([item.lng, item.lat]);
+            this.renderH5Markers();
+            // #endif
+            const first = this.filteredNodes.find((it) => Number.isFinite(it.lng) && Number.isFinite(it.lat));
+            if (!first) return;
+            // #ifdef H5
+            if (this.h5Map) {
+                this.h5Map.setCenter([first.lng, first.lat]);
             }
             // #endif
             // #ifdef MP-WEIXIN
-            if (Number.isFinite(item.lng) && Number.isFinite(item.lat)) {
-                this.mpCenter = { latitude: item.lat, longitude: item.lng };
-            }
+            this.mpCenter = { latitude: first.lat, longitude: first.lng };
             // #endif
         },
-        applyTheme(theme) {
-            if (!theme) return;
+        applyTheme() {
             const root = typeof document !== "undefined" && document.documentElement
                 ? document.documentElement
                 : null;
             if (root) {
-                root.style.setProperty("--app-bg-color", theme.bg);
-                root.style.setProperty("--protocol-bg", theme.bg);
-                root.style.setProperty("--theme-primary", theme.primary);
-                root.style.setProperty("--protocol-accent", theme.primary);
-                root.style.setProperty("--theme-border", theme.border);
+                root.style.setProperty("--app-bg-color", "#FFF9F0");
+                root.style.setProperty("--protocol-bg", "#FFF9F0");
+                root.style.setProperty("--theme-primary", "#FF8D42");
+                root.style.setProperty("--protocol-accent", "#FF8D42");
+                root.style.setProperty("--theme-border", "#F5BC94");
             }
-            this.activeTheme = theme.id;
-            uni.setStorageSync("food_theme_uni_v1", theme.id);
-            this.showThemePanel = false;
-        },
-        restoreTheme() {
-            const key = uni.getStorageSync("food_theme_uni_v1");
-            const target = this.themePresets.find((it) => it.id === key) || this.themePresets[0];
-            this.applyTheme(target);
         },
         tryRestoreSession() {
             const stored = getStoredSession();
@@ -280,6 +287,7 @@ export default {
             this.mpMarkers = [];
             this.renderH5Markers();
             this.showLoginPanel = false;
+            this.activeGroupId = "all";
         },
         startSync() {
             if (!this.session || !this.session.access_token) return;
@@ -299,7 +307,8 @@ export default {
                 name: it.name || "未命名",
                 lng: Number(it.lng),
                 lat: Number(it.lat),
-                address: it.address || ""
+                address: it.address || "",
+                group: it.category || "默认小组"
             }));
             this.renderMpMarkers();
             // #ifdef H5
@@ -320,7 +329,7 @@ export default {
             }
         },
         renderMpMarkers() {
-            this.mpMarkers = this.nodes
+            this.mpMarkers = this.filteredNodes
                 .filter((n) => Number.isFinite(n.lng) && Number.isFinite(n.lat))
                 .map((n) => ({
                     id: Number(n.id) || Date.now(),
@@ -367,7 +376,7 @@ export default {
             this.h5Markers.forEach((m) => m.setMap(null));
             this.h5Markers = [];
 
-            this.nodes
+            this.filteredNodes
                 .filter((n) => Number.isFinite(n.lng) && Number.isFinite(n.lat))
                 .forEach((n) => {
                     const marker = new window.AMap.Marker({
@@ -386,13 +395,9 @@ export default {
 <style scoped>
 .page-root,
 .topbar,
-.theme-panel,
 .login-card,
-.bottom-card,
 .sidebar-panel,
 .topbar-icon-btn,
-.refresh-btn,
-.logout-btn,
 .login-btn {
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -454,10 +459,11 @@ export default {
     left: 20rpx;
     right: 20rpx;
     z-index: 20;
-    padding: 20rpx 24rpx;
+    padding: 18rpx 20rpx;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    background: rgba(255, 249, 240, 0.8);
 }
 
 .topbar-meta {
@@ -467,15 +473,18 @@ export default {
 .topbar-actions {
     display: flex;
     align-items: center;
-    gap: 12rpx;
+    gap: 4rpx;
+    padding: 4rpx;
+    border-radius: 999rpx;
+    background: rgba(255, 255, 255, 0.58);
 }
 
 .topbar-icon-btn {
     width: 64rpx;
     height: 64rpx;
-    border-radius: 28rpx;
+    border-radius: 999rpx;
     border: none;
-    background: rgba(255, 255, 255, 0.8);
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -485,28 +494,39 @@ export default {
 .topbar-icon {
     font-size: 30rpx;
     line-height: 1;
+    color: #FF8D42;
 }
 
-.theme-panel {
-    position: absolute;
-    right: 24rpx;
-    top: calc(100% + 10rpx);
-    padding: 14rpx;
-    z-index: 35;
+.search-float {
+    position: fixed;
+    top: 132rpx;
+    left: 20rpx;
+    right: 20rpx;
+    z-index: 22;
 }
 
-.theme-row {
+.search-capsule {
+    height: 84rpx;
+    border-radius: 32px;
+    background: rgba(255, 249, 240, 0.8);
+    padding: 0 20rpx;
     display: flex;
     align-items: center;
     gap: 12rpx;
 }
 
-.theme-dot {
-    width: 34rpx;
-    height: 34rpx;
-    border-radius: 28rpx;
+.search-input {
+    flex: 1;
+    min-width: 0;
     border: none;
-    padding: 0;
+    background: transparent;
+    color: var(--text-deep);
+    font-size: 28rpx;
+}
+
+.search-icon {
+    font-size: 30rpx;
+    color: #FF8D42;
 }
 
 .title {
@@ -534,17 +554,27 @@ export default {
     left: 0;
     top: 0;
     bottom: 0;
-    width: min(620rpx, 88vw);
+    width: 70vw;
     padding: 0;
-    background: rgba(255, 255, 255, 0.38);
+    background: rgba(255, 249, 240, 0.46);
     color: var(--text-deep);
-    transform: translateX(0);
+    transform: translateX(-100%);
     box-shadow: 8rpx 0 36rpx rgba(80, 92, 110, 0.16);
+    animation: sidebar-in 220ms ease-out forwards;
 }
 
 .gem-side-panel {
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+@keyframes sidebar-in {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(0);
+    }
 }
 
 .sidebar-head {
@@ -602,32 +632,6 @@ export default {
     margin-top: 6rpx;
     font-size: 22rpx;
     color: rgba(61, 61, 61, 0.7);
-}
-
-.bottom-card {
-    position: fixed;
-    left: 20rpx;
-    right: 20rpx;
-    bottom: calc(20rpx + env(safe-area-inset-bottom));
-    z-index: 20;
-    padding: 20rpx 24rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 14rpx;
-    border-radius: 28rpx;
-    box-shadow: 0 14rpx 34rpx rgba(62, 49, 32, 0.12), 0 2rpx 8rpx rgba(62, 49, 32, 0.08);
-}
-
-.refresh-btn {
-    border: none;
-    border-radius: 28rpx;
-    padding: 0 28rpx;
-    height: 64rpx;
-    line-height: 64rpx;
-    font-size: 24rpx;
-    background: rgba(255, 141, 66, 0.2);
-    color: var(--text-deep);
 }
 
 .logout-btn {
