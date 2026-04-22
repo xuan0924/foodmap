@@ -3,14 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev:h5": "uni",
-    "build:h5": "uni build --type h5"
+    "dev:h5": "uni -p h5",
+    "build:h5": "uni build -p h5"
   },
   "dependencies": {
-    "vue": "^3.0.0"
+    "vue": "^3.5.0"
   },
   "devDependencies": {
-    "@dcloudio/uni-cli-shared": "latest",
-    "vite": "latest"
+    "@dcloudio/types": "^3.4.8",
+    "@dcloudio/vite-plugin-uni": "3.0.0-4020320240708001",
+    "@vue/compiler-sfc": "^3.5.0",
+    "vite": "^5.4.21"
   }
 }
