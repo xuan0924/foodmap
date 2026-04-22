@@ -110,11 +110,17 @@ body, html {
 }
 
 #container {
-    width: 100%;
-    height: 100%;
-    position: absolute;
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
     z-index: 1;
     isolation: isolate;
+}
+
+#container,
+#container * {
+    touch-action: pan-x pan-y;
 }
 
 /* —— 顶栏（对齐 Gemini 顶栏） —— */
@@ -125,8 +131,10 @@ body, html {
     right: 0;
     height: var(--gem-topbar-h);
     z-index: 200;
-    background: var(--gem-surface);
+    background: color-mix(in srgb, var(--gem-surface) 86%, transparent);
     border-bottom: 1px solid var(--gem-border);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     display: flex;
     align-items: center;
     padding: 0 8px 0 4px;
@@ -212,6 +220,19 @@ body, html {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* 固定 UI 层：优先响应触摸，避免误触地图拖拽 */
+.gem-topbar,
+.gem-side-panel,
+.drawer-scrim,
+#search-float,
+.protocol-teleport-fab,
+.protocol-teleport-hint,
+.protocol-nav-sheet,
+.protocol-nav-scrim {
+    touch-action: manipulation;
+    pointer-events: auto;
 }
 
 .gem-icon-btn {
@@ -334,7 +355,9 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     left: 50%;
     transform: translateX(-50%);
     width: min(720px, calc(100vw - 24px));
-    z-index: 100;
+    z-index: 220;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .search-float-row {

@@ -10,6 +10,7 @@ window.onload = async function() {
         }
         initSearchModule();
         initTeleportFab();
+        initFixedUIInteractionGuard();
         console.log("💡 准备就绪，全国搜索餐饮 POI，收纳你的私藏。");
     } catch (error) {
         console.error("❌ 地图加载失败：", error);
@@ -69,6 +70,34 @@ function initTeleportFab() {
         if (MapEngine.beginTeleport) {
             MapEngine.beginTeleport(item);
         }
+    });
+}
+
+function initFixedUIInteractionGuard() {
+    const uiSelectors = [
+        '.gem-topbar',
+        '#side-panel',
+        '#drawer-scrim',
+        '#search-float',
+        '#protocol-teleport-trigger',
+        '#protocol-teleport-hint',
+        '#protocol-nav-sheet',
+        '#protocol-nav-scrim'
+    ];
+    const isInFixedUI = (target) => {
+        if (!target || !target.closest) return false;
+        return uiSelectors.some((sel) => target.closest(sel));
+    };
+    ['touchstart', 'pointerdown', 'mousedown', 'click'].forEach((eventName) => {
+        document.addEventListener(
+            eventName,
+            (e) => {
+                if (isInFixedUI(e.target)) {
+                    e.stopPropagation();
+                }
+            },
+            true
+        );
     });
 }
 
