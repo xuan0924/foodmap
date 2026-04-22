@@ -1104,73 +1104,29 @@ html.drawer-open #protocol-teleport-hint {
     text-align: center;
 }
 
-.map-marker-node {
-    position: relative;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    pointer-events: auto;
-    --node-purple: #7a4dff;
-    --node-glow: rgba(122, 77, 255, 0.45);
+.map-marker-card {
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    background: var(--gem-surface);
+    border: 2px solid rgba(255, 255, 255, 0.95);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 16px rgba(52, 77, 116, 0.22), 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    transform: translateY(0);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
 }
 
-.map-marker-core {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #c5adff 0%, #9c74ff 42%, var(--node-purple) 100%);
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9), 0 0 12px var(--node-glow);
+.map-marker-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 24px rgba(52, 77, 116, 0.28), 0 1px 0 rgba(255, 255, 255, 0.95) inset;
 }
 
-.map-marker-ring {
-    position: absolute;
-    inset: -6px;
-    border-radius: 50%;
-    border: 1.5px solid rgba(138, 106, 255, 0.4);
-    transform: scale(0.8);
-    opacity: 0;
-}
-
-.map-marker-node.is-active .map-marker-core {
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.96), 0 0 18px rgba(122, 77, 255, 0.72);
-}
-
-.map-marker-node .map-marker-ring {
-    animation: marker-breathe 2.1s ease-in-out infinite;
-}
-
-.map-marker-node.pulse-once .map-marker-ring {
-    animation: marker-pulse-once 0.95s ease-out 1;
-}
-
-@keyframes marker-breathe {
-    0% {
-        transform: scale(0.82);
-        opacity: 0.1;
-    }
-    45% {
-        transform: scale(1.55);
-        opacity: 0.38;
-    }
-    100% {
-        transform: scale(2.1);
-        opacity: 0;
-    }
-}
-
-@keyframes marker-pulse-once {
-    0% {
-        transform: scale(0.78);
-        opacity: 0.12;
-    }
-    35% {
-        transform: scale(2);
-        opacity: 0.44;
-    }
-    100% {
-        transform: scale(2.7);
-        opacity: 0;
-    }
+.map-marker-emoji {
+    font-size: 20px;
+    line-height: 1;
 }
 
 .map-name-badge {

@@ -35,7 +35,7 @@ function rebuildPlaceSearch() {
         citylimit: !!city,
         type: '餐饮服务',
         pageSize: 10,
-        map: map || null,
+        map: null,
         panel: null,
         autoFitView: true
     });

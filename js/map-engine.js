@@ -9,8 +9,6 @@ let activeMarkerId = null;
 let lastFocusedNavItem = null;
 /** @type {AMap.InfoWindow | null} */
 let foodInfoWindowInstance = null;
-let markerPulseTimer = 0;
-
 function getProtocolAccentColor() {
     const raw = getComputedStyle(document.documentElement).getPropertyValue('--protocol-accent').trim();
     if (raw) return raw;
@@ -173,32 +171,16 @@ function openFoodInfoWindowUI(item) {
     foodInfoWindowInstance.open(mapInstance, [item.lng, item.lat]);
 }
 
-function buildMarkerNodeHTML(active, pulseOnce) {
-    const cls = [
-        'map-marker-node',
-        active ? 'is-active' : '',
-        pulseOnce ? 'pulse-once' : ''
-    ]
-        .filter(Boolean)
-        .join(' ');
-    return `<div class="${cls}" aria-hidden="true"><span class="map-marker-core"></span><span class="map-marker-ring"></span></div>`;
-}
-
-function setMarkerNodeState(marker, active, pulseOnce) {
-    if (!marker) return;
-    marker.setContent(buildMarkerNodeHTML(active, pulseOnce));
-}
-
-function triggerFocusedNodePulse(marker) {
-    if (!marker) return;
-    setMarkerNodeState(marker, true, true);
-    if (markerPulseTimer) {
-        clearTimeout(markerPulseTimer);
-        markerPulseTimer = 0;
-    }
-    markerPulseTimer = setTimeout(() => {
-        setMarkerNodeState(marker, true, false);
-    }, 980);
+function getMarkerEmoji(item) {
+    const text = `${item && item.category ? item.category : ''}${item && item.name ? item.name : ''}`;
+    if (/咖啡|coffee|拿铁|美式/i.test(text)) return '☕';
+    if (/甜|蛋糕|面包|dessert|烘焙/i.test(text)) return '🍰';
+    if (/火锅|麻辣烫|串串/i.test(text)) return '🍲';
+    if (/烧烤|烤肉|bbq/i.test(text)) return '🍢';
+    if (/奶茶|饮品|果汁|茶饮/i.test(text)) return '🧋';
+    if (/日料|寿司|刺身/i.test(text)) return '🍣';
+    if (/面|粉|米线|拉面/i.test(text)) return '🍜';
+    return '🍽️';
 }
 
 /**
@@ -246,8 +228,8 @@ function renderFoodMarker(item) {
 
     const marker = new AMap.Marker({
         position: [item.lng, item.lat],
-        content: buildMarkerNodeHTML(false, false),
-        anchor: 'center',
+        content: `<div class="map-marker-card" title="${item.name || ''}"><span class="map-marker-emoji">${getMarkerEmoji(item)}</span></div>`,
+        anchor: 'bottom-center',
         offset: new AMap.Pixel(0, 0)
     });
 
@@ -289,7 +271,6 @@ function focusMarker(item) {
         const prev = markerRegistry.get(activeMarkerId);
         const prevData = markerDataRegistry.get(activeMarkerId);
         if (prevData) {
-            setMarkerNodeState(prev, false, false);
             prev.setLabel({
                 direction: 'top',
                 offset: new AMap.Pixel(0, -6),
@@ -298,7 +279,6 @@ function focusMarker(item) {
         }
     }
 
-    triggerFocusedNodePulse(marker);
     marker.setLabel({
         direction: 'top',
         offset: new AMap.Pixel(0, -6),
@@ -319,7 +299,6 @@ function showCategoryMarkers(items) {
         const markerId = getMarkerId(item);
         const marker = markerRegistry.get(markerId) || renderFoodMarker(item);
         if (!marker) return;
-        setMarkerNodeState(marker, false, false);
         marker.setLabel({
             direction: 'top',
             offset: new AMap.Pixel(0, -6),
@@ -356,7 +335,6 @@ function removeFoodMarker(item) {
 function hideAllMarkers() {
     closeFoodInfoWindowImpl();
     markerRegistry.forEach((marker, markerId) => {
-        setMarkerNodeState(marker, false, false);
         marker.setLabel(null);
         marker.setMap(null);
         visibleMarkerIds.delete(markerId);
