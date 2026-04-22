@@ -1086,6 +1086,11 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     line-height: 1;
 }
 
+/* 导航预览路径起点（极简流光 · 主题色圆点，非高德默认图钉） */
+.route-origin-dot {
+    box-sizing: border-box;
+}
+
 .map-name-badge {
     display: inline-flex;
     align-items: center;

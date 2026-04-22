@@ -11,6 +11,8 @@ let lastFocusedNavItem = null;
 let foodInfoWindowInstance = null;
 /** @type {AMap.Polyline[]} */
 let routePreviewLines = [];
+/** @type {AMap.Marker | null} 路径起点流光圆点（非高德默认图钉） */
+let routeOriginDotMarker = null;
 
 function clearRoutePreview() {
     routePreviewLines.forEach((line) => {
@@ -21,6 +23,93 @@ function clearRoutePreview() {
         }
     });
     routePreviewLines = [];
+    if (routeOriginDotMarker) {
+        try {
+            routeOriginDotMarker.setMap(null);
+        } catch (e) {
+            /* ignore */
+        }
+        routeOriginDotMarker = null;
+    }
+}
+
+function segmentLen2D(a, b) {
+    const dx = a[0] - b[0];
+    const dy = a[1] - b[1];
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+/** 按路径累计长度截取前 fraction（0~1）一段，用于生长动画 */
+function slicePathByFraction(fullPath, fraction) {
+    if (!fullPath || fullPath.length < 2) {
+        const p = fullPath && fullPath[0] ? fullPath[0] : [0, 0];
+        return [p, p];
+    }
+    if (fraction >= 1) return fullPath.slice();
+
+    let total = 0;
+    const segLens = [];
+    for (let i = 1; i < fullPath.length; i++) {
+        const len = segmentLen2D(fullPath[i - 1], fullPath[i]);
+        segLens.push(len);
+        total += len;
+    }
+    if (total <= 1e-12) return [fullPath[0], fullPath[fullPath.length - 1]];
+
+    const target = total * Math.max(0, fraction);
+    let acc = 0;
+    const out = [fullPath[0]];
+    for (let i = 1; i < fullPath.length; i++) {
+        const sl = segLens[i - 1];
+        if (acc + sl <= target + 1e-9) {
+            out.push(fullPath[i]);
+            acc += sl;
+        } else {
+            const remain = target - acc;
+            const t = sl > 0 ? remain / sl : 1;
+            const p0 = fullPath[i - 1];
+            const p1 = fullPath[i];
+            out.push([p0[0] + (p1[0] - p0[0]) * t, p0[1] + (p1[1] - p0[1]) * t]);
+            break;
+        }
+    }
+    return out.length >= 2 ? out : [fullPath[0], fullPath[0]];
+}
+
+function easeOutCubic(t) {
+    return 1 - Math.pow(1 - t, 3);
+}
+
+function animatePolylineGrowth(polyline, fullPath, durationMs, onComplete) {
+    if (!polyline || !fullPath || fullPath.length < 2) {
+        if (typeof onComplete === 'function') onComplete();
+        return;
+    }
+    const start = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    function frame(now) {
+        const elapsed = now - start;
+        const linear = Math.min(1, elapsed / durationMs);
+        const t = easeOutCubic(linear);
+        polyline.setPath(slicePathByFraction(fullPath, t));
+        if (linear < 1) {
+            requestAnimationFrame(frame);
+        } else {
+            polyline.setPath(fullPath);
+            if (typeof onComplete === 'function') onComplete();
+        }
+    }
+    polyline.setPath(slicePathByFraction(fullPath, 0));
+    requestAnimationFrame(frame);
+}
+
+function normalizePathFromOrigin(path, originLngLat) {
+    const p = path && path.length ? path.slice() : [originLngLat, originLngLat];
+    const first = p[0];
+    const d = segmentLen2D(first, originLngLat);
+    if (d > 1e-6) {
+        return [originLngLat].concat(p);
+    }
+    return p;
 }
 
 function getProtocolAccentColor() {
@@ -41,7 +130,6 @@ function previewDrivingRouteFromTo(originLngLat, destLngLat, done) {
     clearRoutePreview();
 
     const accent = getProtocolAccentColor();
-    const glow = accent;
 
     function pushPathPoint(path, p) {
         if (!p) return;
@@ -70,37 +158,56 @@ function previewDrivingRouteFromTo(originLngLat, destLngLat, done) {
         return path;
     }
 
-    function applyRoutePathToMap(path, destLngLat) {
-        const glowLine = new AMap.Polyline({
-            path,
-            strokeColor: glow,
-            strokeOpacity: 0.38,
-            strokeWeight: 14,
-            lineJoin: 'round',
-            lineCap: 'round',
-            zIndex: 90,
-            bubble: true
+    function applyRoutePathToMap(path, originLngLat, destLngLat, onDone) {
+        const fullPath = normalizePathFromOrigin(path, originLngLat);
+
+        const dotEl = document.createElement('div');
+        dotEl.className = 'route-origin-dot';
+        dotEl.style.cssText = [
+            'width:11px',
+            'height:11px',
+            'border-radius:50%',
+            `background:${accent}`,
+            'border:2px solid #ffffff',
+            `box-shadow:0 0 12px ${accent}59,0 0 4px rgba(255,255,255,0.95)`,
+            'pointer-events:none'
+        ].join(';');
+
+        routeOriginDotMarker = new AMap.Marker({
+            position: originLngLat,
+            content: dotEl,
+            anchor: 'center',
+            offset: new AMap.Pixel(0, 0),
+            zIndex: 96,
+            bubble: false
         });
-        const mainLine = new AMap.Polyline({
-            path,
+        routeOriginDotMarker.setMap(mapInstance);
+
+        const routeLine = new AMap.Polyline({
+            path: slicePathByFraction(fullPath, 0),
             strokeColor: accent,
-            strokeOpacity: 1,
-            strokeWeight: 6,
+            strokeOpacity: 0.8,
+            strokeWeight: 5,
             lineJoin: 'round',
             lineCap: 'round',
-            zIndex: 91,
+            isOutline: true,
+            outlineColor: '#ffffff',
+            borderWeight: 1,
+            zIndex: 93,
             bubble: true
         });
 
-        glowLine.setMap(mapInstance);
-        mainLine.setMap(mapInstance);
-        routePreviewLines.push(glowLine, mainLine);
+        routeLine.setMap(mapInstance);
+        routePreviewLines.push(routeLine);
 
-        try {
-            mapInstance.setFitView([glowLine, mainLine], false, [56, 56, 56, 56]);
-        } catch (e) {
-            mapInstance.setZoomAndCenter(14, destLngLat);
-        }
+        animatePolylineGrowth(routeLine, fullPath, 1000, () => {
+            try {
+                mapInstance.setFitView([routeLine, routeOriginDotMarker], false, [56, 56, 56, 56]);
+            } catch (e) {
+                mapInstance.setZoomAndCenter(14, destLngLat);
+            }
+            if (typeof onDone === 'function') onDone();
+        });
     }
 
     AMap.plugin('AMap.Driving', function () {
@@ -125,10 +232,10 @@ function previewDrivingRouteFromTo(originLngLat, destLngLat, done) {
                 if (!path.length) {
                     path = [originLngLat, destLngLat];
                 }
-                applyRoutePathToMap(path, destLngLat);
-                if (typeof done === 'function') {
-                    done(status === 'complete' && result && result.routes && result.routes.length);
-                }
+                const routeOk = status === 'complete' && result && result.routes && result.routes.length;
+                applyRoutePathToMap(path, originLngLat, destLngLat, () => {
+                    if (typeof done === 'function') done(routeOk);
+                });
             }
         );
     });
