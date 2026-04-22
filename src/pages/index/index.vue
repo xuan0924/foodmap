@@ -6,8 +6,29 @@
         </view>
 
         <view class="topbar glass-card">
-            <text class="title cream-title">吃货同步协议</text>
-            <text class="subtitle">{{ loginSubtitle }}</text>
+            <view class="topbar-meta">
+                <text class="title cream-title">吃货同步协议</text>
+                <text class="subtitle">{{ loginSubtitle }}</text>
+            </view>
+            <view class="topbar-actions">
+                <button class="topbar-icon-btn avatar-btn" @click="toggleLoginPanel">
+                    <text class="topbar-icon">👤</text>
+                </button>
+                <button class="topbar-icon-btn palette-btn" @click="toggleThemePanel">
+                    <text class="topbar-icon">🎨</text>
+                </button>
+            </view>
+            <view v-if="showThemePanel" class="theme-panel glass-card">
+                <view class="theme-row">
+                    <button
+                        v-for="theme in themePresets"
+                        :key="theme.id"
+                        class="theme-dot"
+                        :style="{ background: theme.bg, borderColor: activeTheme === theme.id ? theme.primary : '#fff' }"
+                        @click="applyTheme(theme)"
+                    />
+                </view>
+            </view>
         </view>
 
         <!-- #ifdef H5 -->
@@ -26,33 +47,33 @@
         />
         <!-- #endif -->
 
-        <view v-if="!isLoggedIn" class="login-overlay">
+        <view v-if="showLoginPanel" class="login-overlay" @click.self="showLoginPanel = false">
             <view class="login-card glass-card">
-                <text class="login-title cream-title">登录后开启同步链路</text>
-                <!-- #ifdef H5 -->
-                <input
-                    v-model="phone"
-                    class="login-input"
-                    type="number"
-                    maxlength="11"
-                    placeholder="输入手机号"
-                />
-                <view class="otp-row">
-                    <input
-                        v-model="otpCode"
-                        class="login-input otp-input"
-                        type="number"
-                        maxlength="6"
-                        placeholder="验证码"
-                    />
-                    <button class="otp-btn" @click="handleSendOtp">发送验证码</button>
-                </view>
-                <button class="login-btn" @click="handleVerifyOtp">手机号登录</button>
-                <!-- #endif -->
+                <text class="login-title cream-title">{{ isLoggedIn ? "账户管理" : "微信登录" }}</text>
+                <text class="login-desc" v-if="isLoggedIn">已登录，可继续同步节点。</text>
 
-                <!-- #ifdef MP-WEIXIN -->
-                <button class="login-btn" @click="handleWechatLogin">微信一键登录</button>
-                <!-- #endif -->
+                <template v-if="!isLoggedIn">
+                    <!-- #ifdef H5 -->
+                    <text class="login-desc">请使用微信扫码登录</text>
+                    <image
+                        v-if="wechatQrImage"
+                        :src="wechatQrImage"
+                        mode="aspectFit"
+                        class="qr-image"
+                    />
+                    <text class="login-tip" v-if="!wechatBridgeReady">
+                        请先在 lib/supabase.js 配置 wechatBridgeUrl
+                    </text>
+                    <button class="login-btn" @click="handleWechatLogin">打开扫码页</button>
+                    <!-- #endif -->
+
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text class="login-desc">授权后即可同步小组节点</text>
+                    <button class="login-btn" @click="handleWechatLogin">微信一键登录</button>
+                    <!-- #endif -->
+                </template>
+
+                <button v-if="isLoggedIn" class="logout-btn panel-logout-btn" @click="handleLogout">退出登录</button>
             </view>
         </view>
 
@@ -67,9 +88,8 @@
 <script>
 import { MAP_CONFIG } from "@/config/map";
 import { fetchFoodNodes } from "@/services/foodNodes.service";
+import { SUPABASE_CONFIG } from "@/config/supabase";
 import {
-    sendPhoneOtp,
-    verifyPhoneOtp,
     getStoredSession,
     isSessionValid,
     signOut,
@@ -89,9 +109,16 @@ export default {
             mpMarkers: [],
             h5Map: null,
             h5Markers: [],
-            phone: "",
-            otpCode: "",
-            session: null
+            session: null,
+            showLoginPanel: false,
+            showThemePanel: false,
+            activeTheme: "cream",
+            themePresets: [
+                { id: "cream", bg: "#FDF6EC", primary: "#1A73E8", border: "#9AB8E6" },
+                { id: "mint", bg: "#F3F8EE", primary: "#2E7D32", border: "#8FCF8A" },
+                { id: "lavender", bg: "#F4F1FB", primary: "#5E35B1", border: "#B59DE5" },
+                { id: "sunset", bg: "#FFF2E8", primary: "#EF6C00", border: "#F1AA6B" }
+            ]
         };
     },
     computed: {
@@ -101,10 +128,21 @@ export default {
         loginSubtitle() {
             return this.isLoggedIn
                 ? "已登录 · 实时同步中"
-                : "Web OTP / 微信登录后开启实时同步";
+                : "未登录 · 点击右上角头像";
+        },
+        wechatBridgeReady() {
+            return !!SUPABASE_CONFIG.wechatBridgeUrl;
+        },
+        wechatQrImage() {
+            if (!this.wechatBridgeReady) return "";
+            // 使用在线二维码服务，仅 H5 展示扫码入口
+            return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
+                SUPABASE_CONFIG.wechatBridgeUrl
+            )}`;
         }
     },
     onLoad() {
+        this.restoreTheme();
         this.tryRestoreSession();
     },
     async onReady() {
@@ -117,6 +155,35 @@ export default {
         stopFoodNodesSync();
     },
     methods: {
+        toggleLoginPanel() {
+            this.showLoginPanel = !this.showLoginPanel;
+            this.showThemePanel = false;
+        },
+        toggleThemePanel() {
+            this.showThemePanel = !this.showThemePanel;
+            if (this.showThemePanel) this.showLoginPanel = false;
+        },
+        applyTheme(theme) {
+            if (!theme) return;
+            const root = typeof document !== "undefined" && document.documentElement
+                ? document.documentElement
+                : null;
+            if (root) {
+                root.style.setProperty("--app-bg-color", theme.bg);
+                root.style.setProperty("--protocol-bg", theme.bg);
+                root.style.setProperty("--theme-primary", theme.primary);
+                root.style.setProperty("--protocol-accent", theme.primary);
+                root.style.setProperty("--theme-border", theme.border);
+            }
+            this.activeTheme = theme.id;
+            uni.setStorageSync("food_theme_uni_v1", theme.id);
+            this.showThemePanel = false;
+        },
+        restoreTheme() {
+            const key = uni.getStorageSync("food_theme_uni_v1");
+            const target = this.themePresets.find((it) => it.id === key) || this.themePresets[0];
+            this.applyTheme(target);
+        },
         tryRestoreSession() {
             const stored = getStoredSession();
             if (stored && isSessionValid(stored)) {
@@ -125,38 +192,21 @@ export default {
                 this.startSync();
             }
         },
-        async handleSendOtp() {
-            if (!/^1\d{10}$/.test(this.phone)) {
-                uni.showToast({ title: "请输入正确手机号", icon: "none" });
-                return;
-            }
-            try {
-                await sendPhoneOtp(this.phone);
-                uni.showToast({ title: "验证码已发送", icon: "none" });
-            } catch (err) {
-                uni.showToast({ title: "发送失败", icon: "none" });
-                console.error(err);
-            }
-        },
-        async handleVerifyOtp() {
-            if (!this.phone || !this.otpCode) {
-                uni.showToast({ title: "请先填写手机号和验证码", icon: "none" });
-                return;
-            }
-            try {
-                const session = await verifyPhoneOtp(this.phone, this.otpCode);
-                this.session = session;
-                uni.showToast({ title: "登录成功", icon: "none" });
-                await this.loadNodes();
-                this.startSync();
-            } catch (err) {
-                uni.showToast({ title: "验证码错误或已失效", icon: "none" });
-                console.error(err);
-            }
-        },
-        // #ifdef MP-WEIXIN
         async handleWechatLogin() {
             try {
+                // #ifdef H5
+                if (!this.wechatBridgeReady) {
+                    uni.showToast({
+                        title: "未配置扫码登录地址",
+                        icon: "none"
+                    });
+                    return;
+                }
+                window.open(SUPABASE_CONFIG.wechatBridgeUrl, "_blank", "noopener,noreferrer");
+                return;
+                // #endif
+
+                // #ifdef MP-WEIXIN
                 const wxLogin = await new Promise((resolve, reject) => {
                     uni.login({
                         provider: "weixin",
@@ -168,14 +218,15 @@ export default {
                 const session = await signInWithWeChatCode(wxLogin.code);
                 this.session = session;
                 uni.showToast({ title: "微信登录成功", icon: "none" });
+                this.showLoginPanel = false;
                 await this.loadNodes();
                 this.startSync();
             } catch (err) {
                 uni.showToast({ title: "微信登录失败", icon: "none" });
                 console.error(err);
             }
+            // #endif
         },
-        // #endif
         handleLogout() {
             signOut();
             stopFoodNodesSync();
@@ -183,6 +234,7 @@ export default {
             this.nodes = [];
             this.mpMarkers = [];
             this.renderH5Markers();
+            this.showLoginPanel = false;
         },
         startSync() {
             if (!this.session || !this.session.access_token) return;
@@ -339,6 +391,58 @@ export default {
     right: 20rpx;
     z-index: 20;
     padding: 20rpx 24rpx;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.topbar-meta {
+    min-width: 0;
+}
+
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+}
+
+.topbar-icon-btn {
+    width: 64rpx;
+    height: 64rpx;
+    border-radius: 999rpx;
+    border: 1px solid rgba(154, 184, 230, 0.6);
+    background: rgba(255, 255, 255, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.topbar-icon {
+    font-size: 30rpx;
+    line-height: 1;
+}
+
+.theme-panel {
+    position: absolute;
+    right: 24rpx;
+    top: calc(100% + 10rpx);
+    padding: 14rpx;
+    z-index: 35;
+}
+
+.theme-row {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+}
+
+.theme-dot {
+    width: 34rpx;
+    height: 34rpx;
+    border-radius: 999rpx;
+    border: 3rpx solid #fff;
+    padding: 0;
 }
 
 .title {
@@ -416,38 +520,26 @@ export default {
     display: block;
 }
 
-.login-input {
-    width: 100%;
-    box-sizing: border-box;
-    height: 78rpx;
-    border-radius: 18rpx;
-    border: 1px solid rgba(154, 184, 230, 0.65);
-    background: rgba(255, 255, 255, 0.86);
-    padding: 0 20rpx;
+.login-desc {
+    display: block;
     margin-bottom: 14rpx;
-    font-size: 28rpx;
-}
-
-.otp-row {
-    display: flex;
-    gap: 12rpx;
-}
-
-.otp-input {
-    margin-bottom: 0;
-    flex: 1;
-}
-
-.otp-btn {
-    height: 78rpx;
-    line-height: 78rpx;
-    padding: 0 18rpx;
-    border-radius: 18rpx;
-    border: none;
+    color: var(--gem-text-secondary);
     font-size: 24rpx;
-    background: rgba(26, 115, 232, 0.14);
-    color: var(--protocol-accent);
-    flex-shrink: 0;
+}
+
+.login-tip {
+    display: block;
+    margin-bottom: 10rpx;
+    color: #9c3f3f;
+    font-size: 22rpx;
+}
+
+.qr-image {
+    width: 320rpx;
+    height: 320rpx;
+    margin: 10rpx auto 16rpx;
+    border-radius: 18rpx;
+    background: #fff;
 }
 
 .login-btn {
@@ -459,5 +551,9 @@ export default {
     font-size: 28rpx;
     background: var(--protocol-accent);
     color: #fff;
+}
+
+.panel-logout-btn {
+    margin-top: 10rpx;
 }
 </style>
