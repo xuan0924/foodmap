@@ -29,7 +29,7 @@ function loadAMapScript() {
         }
 
         const script = document.createElement('script');
-        script.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(AMAP_CONFIG.KEY)}&plugin=AMap.PlaceSearch,AMap.Geocoder,AMap.DistrictSearch`;
+        script.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(AMAP_CONFIG.KEY)}&plugin=AMap.PlaceSearch,AMap.Geocoder,AMap.DistrictSearch,AMap.Driving,AMap.Geolocation`;
         script.async = true;
         script.onload = () => resolve();
         script.onerror = () => reject(new Error("高德地图脚本加载失败"));
@@ -79,9 +79,13 @@ function initThemePicker() {
     }
 
     function applyTheme(bg, primary, border) {
-        if (bg) root.style.setProperty('--app-bg-color', bg);
+        if (bg) {
+            root.style.setProperty('--app-bg-color', bg);
+            root.style.setProperty('--protocol-bg', bg);
+        }
         if (primary) {
             root.style.setProperty('--theme-primary', primary);
+            root.style.setProperty('--protocol-accent', primary);
             root.style.setProperty('--primary-color', primary);
             root.style.setProperty('--theme-strong', toRgba(primary, 1) || primary);
             root.style.setProperty('--gem-hover-primary', toRgba(primary, 0.14));
@@ -92,6 +96,7 @@ function initThemePicker() {
             root.style.setProperty('--gem-hover', toRgba(primary, 0.1));
             root.style.setProperty('--gem-surface-dim', toRgba(primary, 0.09));
         }
+        root.style.setProperty('--protocol-text', '#202124');
         if (border) {
             root.style.setProperty('--theme-border', border);
             root.style.setProperty('--gem-border', border);

@@ -183,6 +183,33 @@ const CollectionUI = {
                 `;
                 shopBtn.addEventListener('click', () => {
                     focusMarker(item);
+                    if (window.ProtocolNav && typeof ProtocolNav.flashLinking === 'function') {
+                        ProtocolNav.flashLinking(item.name);
+                    }
+                    const openNavSheet = (originLngLat) => {
+                        if (!window.ProtocolNav || typeof ProtocolNav.openSheet !== 'function') return;
+                        const fallback =
+                            MapEngine.getMap &&
+                            MapEngine.getMap() &&
+                            MapEngine.getMap().getCenter &&
+                            MapEngine.getMap().getCenter();
+                        let o = originLngLat;
+                        if (!o && fallback) {
+                            const c = fallback;
+                            o =
+                                typeof c.getLng === 'function'
+                                    ? [c.getLng(), c.getLat()]
+                                    : [c.lng, c.lat];
+                        }
+                        ProtocolNav.openSheet(item, o || [item.lng, item.lat]);
+                    };
+                    if (MapEngine.previewDrivingRouteToRestaurant) {
+                        MapEngine.previewDrivingRouteToRestaurant(item, function (_ok, originLngLat) {
+                            openNavSheet(originLngLat);
+                        });
+                    } else {
+                        openNavSheet(null);
+                    }
                 });
 
                 const deleteBtn = document.createElement('button');

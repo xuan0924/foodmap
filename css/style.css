@@ -17,6 +17,9 @@
     --theme-soft-bg-strong: rgba(26, 115, 232, 0.2);
     --theme-on-soft: #1f3d75;
     --theme-strong: #1557b0;
+    --protocol-accent: var(--theme-primary);
+    --protocol-bg: var(--app-bg-color);
+    --protocol-text: var(--gem-text);
     --gem-topbar-h: 64px;
     --gem-side-w: 304px;
     --gem-font: "Roboto", "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -1061,4 +1064,125 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     padding: 10px 14px;
     font-size: 13px;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+/* —— 吃货同步协议 · 动态主题导航矩阵（Bottom Sheet） —— */
+.protocol-nav-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 399;
+    background: rgba(32, 33, 36, 0.42);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.22s ease, visibility 0.22s ease;
+}
+
+.protocol-nav-scrim.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.protocol-nav-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 400;
+    max-height: min(72vh, 520px);
+    padding: 8px 20px calc(20px + env(safe-area-inset-bottom, 0));
+    background: var(--protocol-bg);
+    color: var(--protocol-text);
+    border-radius: 28px 28px 0 0;
+    font-family: var(--gem-font);
+    box-shadow:
+        0 -4px 24px rgba(32, 33, 36, 0.12),
+        0 0 0 1px color-mix(in srgb, var(--protocol-accent) 18%, transparent);
+    transform: translate3d(0, 105%, 0);
+    transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.protocol-nav-sheet.open {
+    transform: translate3d(0, 0, 0);
+}
+
+.protocol-nav-handle {
+    width: 44px;
+    height: 5px;
+    margin: 8px auto 14px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--protocol-text) 22%, transparent);
+}
+
+.protocol-nav-title {
+    margin: 0 0 8px;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--protocol-text);
+}
+
+.protocol-nav-status {
+    margin: 0 0 16px;
+    min-height: 1.25em;
+    font-size: 13px;
+    color: color-mix(in srgb, var(--protocol-text) 78%, transparent);
+}
+
+.protocol-nav-status[hidden] {
+    display: none;
+}
+
+.protocol-nav-matrix {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.protocol-nav-btn {
+    appearance: none;
+    border: none;
+    cursor: pointer;
+    padding: 14px 18px;
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--protocol-text);
+    background: color-mix(in srgb, var(--protocol-accent) 14%, var(--protocol-bg));
+    border: 1px solid color-mix(in srgb, var(--protocol-accent) 32%, transparent);
+    box-shadow:
+        0 2px 8px color-mix(in srgb, var(--protocol-accent) 24%, transparent),
+        0 0 20px color-mix(in srgb, var(--protocol-accent) 12%, transparent);
+    transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+
+.protocol-nav-btn:hover {
+    box-shadow:
+        0 4px 14px color-mix(in srgb, var(--protocol-accent) 30%, transparent),
+        0 0 24px color-mix(in srgb, var(--protocol-accent) 16%, transparent);
+}
+
+.protocol-nav-btn.is-pressed {
+    transform: scale(0.95);
+}
+
+.protocol-nav-close {
+    width: 100%;
+    margin-top: 4px;
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, var(--protocol-text) 14%, transparent);
+    background: transparent;
+    color: color-mix(in srgb, var(--protocol-text) 88%, transparent);
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform 0.14s ease;
+}
+
+.protocol-nav-close:active {
+    transform: scale(0.97);
 }

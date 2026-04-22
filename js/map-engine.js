@@ -5,6 +5,180 @@ const markerRegistry = new Map();
 const markerDataRegistry = new Map();
 const visibleMarkerIds = new Set();
 let activeMarkerId = null;
+/** @type {AMap.Polyline[]} */
+let routePreviewLines = [];
+
+function clearRoutePreview() {
+    routePreviewLines.forEach((line) => {
+        try {
+            line.setMap(null);
+        } catch (e) {
+            /* ignore */
+        }
+    });
+    routePreviewLines = [];
+}
+
+function getProtocolAccentColor() {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue('--protocol-accent').trim();
+    if (raw) return raw;
+    const fallback = getComputedStyle(document.documentElement).getPropertyValue('--theme-primary').trim();
+    return fallback || '#1a73e8';
+}
+
+/**
+ * 使用 Driving 规划路径并绘制预览线（颜色绑定 --protocol-accent）
+ */
+function previewDrivingRouteFromTo(originLngLat, destLngLat, done) {
+    if (!mapInstance) {
+        if (typeof done === 'function') done(false);
+        return;
+    }
+    clearRoutePreview();
+
+    const accent = getProtocolAccentColor();
+    const glow = accent;
+
+    function pushPathPoint(path, p) {
+        if (!p) return;
+        if (Array.isArray(p) && p.length >= 2) {
+            path.push([p[0], p[1]]);
+        } else if (typeof p.getLng === 'function') {
+            path.push([p.getLng(), p.getLat()]);
+        } else if (p.lng != null && p.lat != null) {
+            path.push([p.lng, p.lat]);
+        }
+    }
+
+    function buildPathFromRoute(route) {
+        const path = [];
+        if (route && Array.isArray(route.path) && route.path.length) {
+            route.path.forEach((p) => pushPathPoint(path, p));
+        }
+        if (path.length) return path;
+        if (route && Array.isArray(route.steps)) {
+            route.steps.forEach((step) => {
+                if (step && step.path && step.path.length) {
+                    step.path.forEach((p) => pushPathPoint(path, p));
+                }
+            });
+        }
+        return path;
+    }
+
+    function applyRoutePathToMap(path, destLngLat) {
+        const glowLine = new AMap.Polyline({
+            path,
+            strokeColor: glow,
+            strokeOpacity: 0.38,
+            strokeWeight: 14,
+            lineJoin: 'round',
+            lineCap: 'round',
+            zIndex: 90,
+            bubble: true
+        });
+        const mainLine = new AMap.Polyline({
+            path,
+            strokeColor: accent,
+            strokeOpacity: 1,
+            strokeWeight: 6,
+            lineJoin: 'round',
+            lineCap: 'round',
+            zIndex: 91,
+            bubble: true
+        });
+
+        glowLine.setMap(mapInstance);
+        mainLine.setMap(mapInstance);
+        routePreviewLines.push(glowLine, mainLine);
+
+        try {
+            mapInstance.setFitView([glowLine, mainLine], false, [56, 56, 56, 56]);
+        } catch (e) {
+            mapInstance.setZoomAndCenter(14, destLngLat);
+        }
+    }
+
+    AMap.plugin('AMap.Driving', function () {
+        const drivingPolicy =
+            typeof AMap.DrivingPolicy !== 'undefined' ? AMap.DrivingPolicy.LEAST_TIME : 0;
+        const driving = new AMap.Driving({
+            map: null,
+            policy: drivingPolicy,
+            ferry: 1,
+            hideMarkers: true,
+            autoFit: false
+        });
+
+        driving.search(
+            new AMap.LngLat(originLngLat[0], originLngLat[1]),
+            new AMap.LngLat(destLngLat[0], destLngLat[1]),
+            function (status, result) {
+                let path = [];
+                if (status === 'complete' && result && result.routes && result.routes.length) {
+                    path = buildPathFromRoute(result.routes[0]);
+                }
+                if (!path.length) {
+                    path = [originLngLat, destLngLat];
+                }
+                applyRoutePathToMap(path, destLngLat);
+                if (typeof done === 'function') {
+                    done(status === 'complete' && result && result.routes && result.routes.length);
+                }
+            }
+        );
+    });
+}
+
+function getCurrentLngLatForRouting(cb) {
+    if (!mapInstance) {
+        cb(null);
+        return;
+    }
+    AMap.plugin('AMap.Geolocation', function () {
+        const geo = new AMap.Geolocation({
+            enableHighAccuracy: true,
+            timeout: 12000,
+            convert: true,
+            showButton: false,
+            showMarker: false,
+            showCircle: false
+        });
+        geo.getCurrentPosition(function (status, result) {
+            if (status === 'complete' && result && result.position) {
+                const p = result.position;
+                cb([p.getLng(), p.getLat()]);
+                return;
+            }
+            const c = mapInstance.getCenter();
+            if (c && typeof c.getLng === 'function') {
+                cb([c.getLng(), c.getLat()]);
+            } else if (c && c.lng != null) {
+                cb([c.lng, c.lat]);
+            } else {
+                cb(null);
+            }
+        });
+    });
+}
+
+function previewDrivingRouteToRestaurant(item, callback) {
+    const dest = [item.lng, item.lat];
+    getCurrentLngLatForRouting(function (origin) {
+        if (!origin) {
+            const c = mapInstance && mapInstance.getCenter();
+            if (c && typeof c.getLng === 'function') origin = [c.getLng(), c.getLat()];
+            else if (c && c.lng != null) origin = [c.lng, c.lat];
+        }
+        if (!origin) {
+            if (typeof callback === 'function') callback(false, null);
+            return;
+        }
+        previewDrivingRouteFromTo(origin, dest, function (ok) {
+            if (typeof callback === 'function') callback(ok, origin);
+        });
+    });
+}
 
 function getMarkerEmoji(item) {
     const text = `${item && item.category ? item.category : ''}${item && item.name ? item.name : ''}`;
@@ -346,5 +520,11 @@ const MapEngine = {
         } else {
             focusMapOnCityForSearch(cityLabel, zoomOrDone, done);
         }
+    },
+    previewDrivingRouteToRestaurant(item, callback) {
+        previewDrivingRouteToRestaurant(item, callback);
+    },
+    clearRoutePreview() {
+        clearRoutePreview();
     }
 };
