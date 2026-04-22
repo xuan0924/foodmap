@@ -11,6 +11,9 @@
                 <text class="subtitle">{{ loginSubtitle }}</text>
             </view>
             <view class="topbar-actions">
+                <button class="topbar-icon-btn sidebar-btn" @click="toggleSidebar">
+                    <text class="topbar-icon">☰</text>
+                </button>
                 <button class="topbar-icon-btn avatar-btn" @click="toggleLoginPanel">
                     <text class="topbar-icon">👤</text>
                 </button>
@@ -28,6 +31,24 @@
                         @click="applyTheme(theme)"
                     />
                 </view>
+            </view>
+        </view>
+
+        <view v-if="showSidebar" class="sidebar-overlay" @click.self="showSidebar = false">
+            <view class="sidebar-panel glass-card">
+                <text class="sidebar-title cream-title">节点清单</text>
+                <scroll-view scroll-y class="sidebar-list">
+                    <view
+                        v-for="item in nodes"
+                        :key="item.id"
+                        class="sidebar-item"
+                        :class="{ 'is-active': activeNodeId === item.id }"
+                        @click="focusNode(item)"
+                    >
+                        <text class="sidebar-item-name">{{ item.name }}</text>
+                        <text class="sidebar-item-sub">{{ item.address || "未填写地址" }}</text>
+                    </view>
+                </scroll-view>
             </view>
         </view>
 
@@ -79,6 +100,20 @@
 
         <view class="bottom-card glass-card">
             <text class="nodes-text">当前节点数：{{ nodes.length }}</text>
+            <view class="node-status-group">
+                <view class="node-status-item">
+                    <text class="node-dot dot-green"></text>
+                    <text class="node-status-text">已定位 {{ nodeStats.located }}</text>
+                </view>
+                <view class="node-status-item">
+                    <text class="node-dot dot-blue"></text>
+                    <text class="node-status-text">有地址 {{ nodeStats.withAddress }}</text>
+                </view>
+                <view class="node-status-item">
+                    <text class="node-dot dot-orange"></text>
+                    <text class="node-status-text">待完善 {{ nodeStats.pending }}</text>
+                </view>
+            </view>
             <button class="refresh-btn" @click="loadNodes">刷新节点</button>
             <button v-if="isLoggedIn" class="logout-btn" @click="handleLogout">退出</button>
         </view>
@@ -112,9 +147,11 @@ export default {
             session: null,
             showLoginPanel: false,
             showThemePanel: false,
+            showSidebar: false,
+            activeNodeId: null,
             activeTheme: "cream",
             themePresets: [
-                { id: "cream", bg: "#FDF6EC", primary: "#1A73E8", border: "#9AB8E6" },
+                { id: "cream", bg: "#FFF9F0", primary: "#1A73E8", border: "#9AB8E6" },
                 { id: "mint", bg: "#F3F8EE", primary: "#2E7D32", border: "#8FCF8A" },
                 { id: "lavender", bg: "#F4F1FB", primary: "#5E35B1", border: "#B59DE5" },
                 { id: "sunset", bg: "#FFF2E8", primary: "#EF6C00", border: "#F1AA6B" }
@@ -128,7 +165,7 @@ export default {
         loginSubtitle() {
             return this.isLoggedIn
                 ? "已登录 · 实时同步中"
-                : "未登录 · 点击右上角头像";
+                : "访客模式 · 点击右上角头像登录";
         },
         wechatBridgeReady() {
             return !!SUPABASE_CONFIG.wechatBridgeUrl;
@@ -139,11 +176,22 @@ export default {
             return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
                 SUPABASE_CONFIG.wechatBridgeUrl
             )}`;
+        },
+        nodeStats() {
+            const located = this.nodes.filter((n) => Number.isFinite(n.lng) && Number.isFinite(n.lat)).length;
+            const withAddress = this.nodes.filter((n) => !!n.address).length;
+            const pending = Math.max(this.nodes.length - withAddress, 0);
+            return {
+                located,
+                withAddress,
+                pending
+            };
         }
     },
     onLoad() {
         this.restoreTheme();
         this.tryRestoreSession();
+        this.loadNodes();
     },
     async onReady() {
         // #ifdef H5
@@ -162,6 +210,25 @@ export default {
         toggleThemePanel() {
             this.showThemePanel = !this.showThemePanel;
             if (this.showThemePanel) this.showLoginPanel = false;
+        },
+        toggleSidebar() {
+            this.showSidebar = !this.showSidebar;
+            if (this.showSidebar) this.showThemePanel = false;
+        },
+        focusNode(item) {
+            if (!item) return;
+            this.activeNodeId = item.id;
+            this.showSidebar = false;
+            // #ifdef H5
+            if (this.h5Map && Number.isFinite(item.lng) && Number.isFinite(item.lat)) {
+                this.h5Map.setCenter([item.lng, item.lat]);
+            }
+            // #endif
+            // #ifdef MP-WEIXIN
+            if (Number.isFinite(item.lng) && Number.isFinite(item.lat)) {
+                this.mpCenter = { latitude: item.lat, longitude: item.lng };
+            }
+            // #endif
         },
         applyTheme(theme) {
             if (!theme) return;
@@ -262,9 +329,9 @@ export default {
             // #endif
         },
         async loadNodes() {
-            if (!this.session || !this.session.access_token) return;
             try {
-                const rows = await fetchFoodNodes(this.session.access_token);
+                const token = this.session && this.session.access_token ? this.session.access_token : "";
+                const rows = await fetchFoodNodes(token);
                 this.applyRows(rows);
             } catch (err) {
                 uni.showToast({
@@ -339,11 +406,30 @@ export default {
 </script>
 
 <style scoped>
+.page-root,
+.topbar,
+.theme-panel,
+.login-card,
+.bottom-card,
+.sidebar-panel,
+.topbar-icon-btn,
+.refresh-btn,
+.logout-btn,
+.login-btn {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
 .page-root {
     position: relative;
     width: 100vw;
     height: 100vh;
     overflow: hidden;
+    --bg-apricot: #FFF9F0;
+    --accent-orange: #FF8D42;
+    --node-green: #A8D5BA;
+    --node-blue: #92A8D1;
+    --text-deep: #3D3D3D;
 }
 
 .map-layer {
@@ -409,9 +495,9 @@ export default {
 .topbar-icon-btn {
     width: 64rpx;
     height: 64rpx;
-    border-radius: 999rpx;
-    border: 1px solid rgba(154, 184, 230, 0.6);
-    background: rgba(255, 255, 255, 0.85);
+    border-radius: 28rpx;
+    border: none;
+    background: rgba(255, 255, 255, 0.8);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -440,8 +526,8 @@ export default {
 .theme-dot {
     width: 34rpx;
     height: 34rpx;
-    border-radius: 999rpx;
-    border: 3rpx solid #fff;
+    border-radius: 28rpx;
+    border: none;
     padding: 0;
 }
 
@@ -454,7 +540,61 @@ export default {
     margin-top: 6rpx;
     display: block;
     font-size: 24rpx;
-    color: var(--gem-text-secondary);
+    color: var(--text-deep);
+}
+
+.sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.sidebar-panel {
+    position: absolute;
+    left: 20rpx;
+    top: 116rpx;
+    bottom: calc(120rpx + env(safe-area-inset-bottom));
+    width: 420rpx;
+    padding: 22rpx;
+    background: rgba(255, 255, 255, 0.8);
+    border: none;
+    color: var(--text-deep);
+}
+
+.sidebar-title {
+    display: block;
+    font-size: 30rpx;
+    margin-bottom: 16rpx;
+}
+
+.sidebar-list {
+    height: 100%;
+}
+
+.sidebar-item {
+    padding: 16rpx 18rpx;
+    border-radius: 28rpx;
+    margin-bottom: 10rpx;
+    background: rgba(255, 255, 255, 0.8);
+    color: var(--text-deep);
+}
+
+.sidebar-item.is-active {
+    background: linear-gradient(130deg, rgba(255, 141, 66, 0.22), rgba(255, 141, 66, 0.45));
+    color: var(--text-deep);
+}
+
+.sidebar-item-name {
+    display: block;
+    font-size: 26rpx;
+}
+
+.sidebar-item-sub {
+    display: block;
+    margin-top: 6rpx;
+    font-size: 22rpx;
+    color: rgba(61, 61, 61, 0.7);
 }
 
 .bottom-card {
@@ -468,33 +608,73 @@ export default {
     align-items: center;
     justify-content: flex-start;
     gap: 14rpx;
+    border-radius: 28rpx;
+    box-shadow: 0 14rpx 34rpx rgba(62, 49, 32, 0.12), 0 2rpx 8rpx rgba(62, 49, 32, 0.08);
 }
 
 .nodes-text {
     font-size: 26rpx;
-    color: var(--gem-text);
+    color: var(--text-deep);
+}
+
+.node-status-group {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+}
+
+.node-status-item {
+    display: flex;
+    align-items: center;
+    gap: 6rpx;
+    padding: 8rpx 12rpx;
+    border-radius: 999rpx;
+    background: rgba(255, 255, 255, 0.8);
+}
+
+.node-dot {
+    width: 14rpx;
+    height: 14rpx;
+    border-radius: 999rpx;
+}
+
+.dot-green {
+    background: var(--node-green);
+}
+
+.dot-blue {
+    background: var(--node-blue);
+}
+
+.dot-orange {
+    background: var(--accent-orange);
+}
+
+.node-status-text {
+    font-size: 20rpx;
+    color: var(--text-deep);
 }
 
 .refresh-btn {
     border: none;
-    border-radius: 999rpx;
+    border-radius: 28rpx;
     padding: 0 28rpx;
     height: 64rpx;
     line-height: 64rpx;
     font-size: 24rpx;
-    background: rgba(26, 115, 232, 0.14);
-    color: var(--protocol-accent);
+    background: rgba(255, 141, 66, 0.2);
+    color: var(--text-deep);
 }
 
 .logout-btn {
     border: none;
-    border-radius: 999rpx;
+    border-radius: 28rpx;
     height: 64rpx;
     line-height: 64rpx;
     font-size: 24rpx;
     padding: 0 24rpx;
-    background: rgba(95, 99, 104, 0.12);
-    color: var(--gem-text-secondary);
+    background: rgba(255, 255, 255, 0.8);
+    color: var(--text-deep);
 }
 
 .login-overlay {
@@ -512,6 +692,8 @@ export default {
     width: 100%;
     max-width: 640rpx;
     padding: 28rpx;
+    background: rgba(255, 255, 255, 0.8);
+    border: none;
 }
 
 .login-title {
@@ -523,7 +705,7 @@ export default {
 .login-desc {
     display: block;
     margin-bottom: 14rpx;
-    color: var(--gem-text-secondary);
+    color: var(--text-deep);
     font-size: 24rpx;
 }
 
@@ -539,18 +721,18 @@ export default {
     height: 320rpx;
     margin: 10rpx auto 16rpx;
     border-radius: 18rpx;
-    background: #fff;
+    background: rgba(255, 255, 255, 0.8);
 }
 
 .login-btn {
     margin-top: 16rpx;
     height: 80rpx;
     line-height: 80rpx;
-    border-radius: 20rpx;
+    border-radius: 28rpx;
     border: none;
     font-size: 28rpx;
-    background: var(--protocol-accent);
-    color: #fff;
+    background: linear-gradient(130deg, rgba(255, 141, 66, 0.28), rgba(255, 141, 66, 0.5));
+    color: var(--text-deep);
 }
 
 .panel-logout-btn {

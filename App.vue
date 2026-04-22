@@ -8,18 +8,23 @@ export default {
 
 <style>
 :root {
+    --bg-apricot: #FFF9F0;
+    --accent-orange: #FF8D42;
+    --node-green: #A8D5BA;
+    --node-blue: #92A8D1;
+    --text-deep: #3D3D3D;
     --theme-primary: #1a73e8;
-    --app-bg-color: #fdf6ec;
-    --gem-text: #202124;
-    --gem-text-secondary: #5f6368;
+    --app-bg-color: var(--bg-apricot);
+    --gem-text: var(--text-deep);
+    --gem-text-secondary: rgba(61, 61, 61, 0.72);
     --theme-border: #9ab8e6;
     --protocol-accent: var(--theme-primary);
     --protocol-bg: var(--app-bg-color);
     --protocol-text: var(--gem-text);
-    --glass-bg: rgba(255, 255, 255, 0.72);
-    --glass-border: rgba(154, 184, 230, 0.58);
+    --glass-bg: rgba(255, 255, 255, 0.8);
+    --glass-border: transparent;
     --radius-xl: 28rpx;
-    --radius-2xl: 36rpx;
+    --radius-2xl: 28rpx;
 }
 
 page {
@@ -30,7 +35,7 @@ page {
 
 .glass-card {
     background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
+    border: none;
     border-radius: var(--radius-2xl);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
