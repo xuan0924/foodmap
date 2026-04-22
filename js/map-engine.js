@@ -9,236 +9,13 @@ let activeMarkerId = null;
 let lastFocusedNavItem = null;
 /** @type {AMap.InfoWindow | null} */
 let foodInfoWindowInstance = null;
-/** @type {AMap.Polyline[]} */
-let routePreviewLines = [];
-/** @type {AMap.Marker | null} 路径起点流光圆点（非高德默认图钉） */
-let routeOriginDotMarker = null;
-
-function clearRoutePreview() {
-    routePreviewLines.forEach((line) => {
-        try {
-            line.setMap(null);
-        } catch (e) {
-            /* ignore */
-        }
-    });
-    routePreviewLines = [];
-    if (routeOriginDotMarker) {
-        try {
-            routeOriginDotMarker.setMap(null);
-        } catch (e) {
-            /* ignore */
-        }
-        routeOriginDotMarker = null;
-    }
-}
-
-function segmentLen2D(a, b) {
-    const dx = a[0] - b[0];
-    const dy = a[1] - b[1];
-    return Math.sqrt(dx * dx + dy * dy);
-}
-
-/** 按路径累计长度截取前 fraction（0~1）一段，用于生长动画 */
-function slicePathByFraction(fullPath, fraction) {
-    if (!fullPath || fullPath.length < 2) {
-        const p = fullPath && fullPath[0] ? fullPath[0] : [0, 0];
-        return [p, p];
-    }
-    if (fraction >= 1) return fullPath.slice();
-
-    let total = 0;
-    const segLens = [];
-    for (let i = 1; i < fullPath.length; i++) {
-        const len = segmentLen2D(fullPath[i - 1], fullPath[i]);
-        segLens.push(len);
-        total += len;
-    }
-    if (total <= 1e-12) return [fullPath[0], fullPath[fullPath.length - 1]];
-
-    const target = total * Math.max(0, fraction);
-    let acc = 0;
-    const out = [fullPath[0]];
-    for (let i = 1; i < fullPath.length; i++) {
-        const sl = segLens[i - 1];
-        if (acc + sl <= target + 1e-9) {
-            out.push(fullPath[i]);
-            acc += sl;
-        } else {
-            const remain = target - acc;
-            const t = sl > 0 ? remain / sl : 1;
-            const p0 = fullPath[i - 1];
-            const p1 = fullPath[i];
-            out.push([p0[0] + (p1[0] - p0[0]) * t, p0[1] + (p1[1] - p0[1]) * t]);
-            break;
-        }
-    }
-    return out.length >= 2 ? out : [fullPath[0], fullPath[0]];
-}
-
-function easeOutCubic(t) {
-    return 1 - Math.pow(1 - t, 3);
-}
-
-function animatePolylineGrowth(polyline, fullPath, durationMs, onComplete) {
-    if (!polyline || !fullPath || fullPath.length < 2) {
-        if (typeof onComplete === 'function') onComplete();
-        return;
-    }
-    const start = typeof performance !== 'undefined' ? performance.now() : Date.now();
-    function frame(now) {
-        const elapsed = now - start;
-        const linear = Math.min(1, elapsed / durationMs);
-        const t = easeOutCubic(linear);
-        polyline.setPath(slicePathByFraction(fullPath, t));
-        if (linear < 1) {
-            requestAnimationFrame(frame);
-        } else {
-            polyline.setPath(fullPath);
-            if (typeof onComplete === 'function') onComplete();
-        }
-    }
-    polyline.setPath(slicePathByFraction(fullPath, 0));
-    requestAnimationFrame(frame);
-}
-
-function normalizePathFromOrigin(path, originLngLat) {
-    const p = path && path.length ? path.slice() : [originLngLat, originLngLat];
-    const first = p[0];
-    const d = segmentLen2D(first, originLngLat);
-    if (d > 1e-6) {
-        return [originLngLat].concat(p);
-    }
-    return p;
-}
+let markerPulseTimer = 0;
 
 function getProtocolAccentColor() {
     const raw = getComputedStyle(document.documentElement).getPropertyValue('--protocol-accent').trim();
     if (raw) return raw;
     const fallback = getComputedStyle(document.documentElement).getPropertyValue('--theme-primary').trim();
     return fallback || '#1a73e8';
-}
-
-/**
- * 使用 Driving 规划路径并绘制预览线（颜色绑定 --protocol-accent）
- */
-function previewDrivingRouteFromTo(originLngLat, destLngLat, done) {
-    if (!mapInstance) {
-        if (typeof done === 'function') done(false);
-        return;
-    }
-    clearRoutePreview();
-
-    const accent = getProtocolAccentColor();
-
-    function pushPathPoint(path, p) {
-        if (!p) return;
-        if (Array.isArray(p) && p.length >= 2) {
-            path.push([p[0], p[1]]);
-        } else if (typeof p.getLng === 'function') {
-            path.push([p.getLng(), p.getLat()]);
-        } else if (p.lng != null && p.lat != null) {
-            path.push([p.lng, p.lat]);
-        }
-    }
-
-    function buildPathFromRoute(route) {
-        const path = [];
-        if (route && Array.isArray(route.path) && route.path.length) {
-            route.path.forEach((p) => pushPathPoint(path, p));
-        }
-        if (path.length) return path;
-        if (route && Array.isArray(route.steps)) {
-            route.steps.forEach((step) => {
-                if (step && step.path && step.path.length) {
-                    step.path.forEach((p) => pushPathPoint(path, p));
-                }
-            });
-        }
-        return path;
-    }
-
-    function applyRoutePathToMap(path, originLngLat, destLngLat, onDone) {
-        const fullPath = normalizePathFromOrigin(path, originLngLat);
-
-        const dotEl = document.createElement('div');
-        dotEl.className = 'route-origin-dot';
-        dotEl.style.cssText = [
-            'width:11px',
-            'height:11px',
-            'border-radius:50%',
-            `background:${accent}`,
-            'border:2px solid #ffffff',
-            `box-shadow:0 0 12px ${accent}59,0 0 4px rgba(255,255,255,0.95)`,
-            'pointer-events:none'
-        ].join(';');
-
-        routeOriginDotMarker = new AMap.Marker({
-            position: originLngLat,
-            content: dotEl,
-            anchor: 'center',
-            offset: new AMap.Pixel(0, 0),
-            zIndex: 96,
-            bubble: false
-        });
-        routeOriginDotMarker.setMap(mapInstance);
-
-        const routeLine = new AMap.Polyline({
-            path: slicePathByFraction(fullPath, 0),
-            strokeColor: accent,
-            strokeOpacity: 0.8,
-            strokeWeight: 5,
-            lineJoin: 'round',
-            lineCap: 'round',
-            isOutline: true,
-            outlineColor: '#ffffff',
-            borderWeight: 1,
-            zIndex: 93,
-            bubble: true
-        });
-
-        routeLine.setMap(mapInstance);
-        routePreviewLines.push(routeLine);
-
-        animatePolylineGrowth(routeLine, fullPath, 1000, () => {
-            try {
-                mapInstance.setFitView([routeLine, routeOriginDotMarker], false, [56, 56, 56, 56]);
-            } catch (e) {
-                mapInstance.setZoomAndCenter(14, destLngLat);
-            }
-            if (typeof onDone === 'function') onDone();
-        });
-    }
-
-    AMap.plugin('AMap.Driving', function () {
-        const drivingPolicy =
-            typeof AMap.DrivingPolicy !== 'undefined' ? AMap.DrivingPolicy.LEAST_TIME : 0;
-        const driving = new AMap.Driving({
-            map: null,
-            policy: drivingPolicy,
-            ferry: 1,
-            hideMarkers: true,
-            autoFit: false
-        });
-
-        driving.search(
-            new AMap.LngLat(originLngLat[0], originLngLat[1]),
-            new AMap.LngLat(destLngLat[0], destLngLat[1]),
-            function (status, result) {
-                let path = [];
-                if (status === 'complete' && result && result.routes && result.routes.length) {
-                    path = buildPathFromRoute(result.routes[0]);
-                }
-                if (!path.length) {
-                    path = [originLngLat, destLngLat];
-                }
-                const routeOk = status === 'complete' && result && result.routes && result.routes.length;
-                applyRoutePathToMap(path, originLngLat, destLngLat, () => {
-                    if (typeof done === 'function') done(routeOk);
-                });
-            }
-        );
-    });
 }
 
 function getCurrentLngLatForRouting(cb) {
@@ -273,8 +50,8 @@ function getCurrentLngLatForRouting(cb) {
     });
 }
 
-function previewDrivingRouteToRestaurant(item, callback) {
-    const dest = [item.lng, item.lat];
+function getNavigationOriginForItem(item, callback) {
+    const dest = item ? [item.lng, item.lat] : null;
     getCurrentLngLatForRouting(function (origin) {
         if (!origin) {
             const c = mapInstance && mapInstance.getCenter();
@@ -285,9 +62,10 @@ function previewDrivingRouteToRestaurant(item, callback) {
             if (typeof callback === 'function') callback(false, null);
             return;
         }
-        previewDrivingRouteFromTo(origin, dest, function (ok) {
-            if (typeof callback === 'function') callback(ok, origin);
-        });
+        if (dest && mapInstance && typeof mapInstance.panTo === 'function') {
+            mapInstance.panTo(dest);
+        }
+        if (typeof callback === 'function') callback(true, origin);
     });
 }
 
@@ -328,7 +106,7 @@ function runTeleportFlow(item) {
         }
         ProtocolNav.openSheet(item, o || [item.lng, item.lat]);
     }
-    previewDrivingRouteToRestaurant(item, function (_ok, originLngLat) {
+    getNavigationOriginForItem(item, function (_ok, originLngLat) {
         openSheetFromOrigin(originLngLat);
     });
 }
@@ -395,16 +173,32 @@ function openFoodInfoWindowUI(item) {
     foodInfoWindowInstance.open(mapInstance, [item.lng, item.lat]);
 }
 
-function getMarkerEmoji(item) {
-    const text = `${item && item.category ? item.category : ''}${item && item.name ? item.name : ''}`;
-    if (/咖啡|coffee|拿铁|美式/i.test(text)) return '☕';
-    if (/甜|蛋糕|面包|dessert|烘焙/i.test(text)) return '🍰';
-    if (/火锅|麻辣烫|串串/i.test(text)) return '🍲';
-    if (/烧烤|烤肉|bbq/i.test(text)) return '🍢';
-    if (/奶茶|饮品|果汁|茶饮/i.test(text)) return '🧋';
-    if (/日料|寿司|刺身/i.test(text)) return '🍣';
-    if (/面|粉|米线|拉面/i.test(text)) return '🍜';
-    return '🍽️';
+function buildMarkerNodeHTML(active, pulseOnce) {
+    const cls = [
+        'map-marker-node',
+        active ? 'is-active' : '',
+        pulseOnce ? 'pulse-once' : ''
+    ]
+        .filter(Boolean)
+        .join(' ');
+    return `<div class="${cls}" aria-hidden="true"><span class="map-marker-core"></span><span class="map-marker-ring"></span></div>`;
+}
+
+function setMarkerNodeState(marker, active, pulseOnce) {
+    if (!marker) return;
+    marker.setContent(buildMarkerNodeHTML(active, pulseOnce));
+}
+
+function triggerFocusedNodePulse(marker) {
+    if (!marker) return;
+    setMarkerNodeState(marker, true, true);
+    if (markerPulseTimer) {
+        clearTimeout(markerPulseTimer);
+        markerPulseTimer = 0;
+    }
+    markerPulseTimer = setTimeout(() => {
+        setMarkerNodeState(marker, true, false);
+    }, 980);
 }
 
 /**
@@ -452,8 +246,8 @@ function renderFoodMarker(item) {
 
     const marker = new AMap.Marker({
         position: [item.lng, item.lat],
-        content: `<div class="map-marker-card" title="${item.name || ''}"><span class="map-marker-emoji">${getMarkerEmoji(item)}</span></div>`,
-        anchor: 'bottom-center',
+        content: buildMarkerNodeHTML(false, false),
+        anchor: 'center',
         offset: new AMap.Pixel(0, 0)
     });
 
@@ -469,7 +263,11 @@ function renderFoodMarker(item) {
  */
 function flyToPosition(lnglat) {
     if (mapInstance) {
-        mapInstance.setZoomAndCenter(16, lnglat); // 缩放到 16 级并移到中心
+        if (typeof mapInstance.panTo === 'function') {
+            mapInstance.panTo(lnglat);
+        } else {
+            mapInstance.setCenter(lnglat);
+        }
     }
 }
 
@@ -491,6 +289,7 @@ function focusMarker(item) {
         const prev = markerRegistry.get(activeMarkerId);
         const prevData = markerDataRegistry.get(activeMarkerId);
         if (prevData) {
+            setMarkerNodeState(prev, false, false);
             prev.setLabel({
                 direction: 'top',
                 offset: new AMap.Pixel(0, -6),
@@ -499,6 +298,7 @@ function focusMarker(item) {
         }
     }
 
+    triggerFocusedNodePulse(marker);
     marker.setLabel({
         direction: 'top',
         offset: new AMap.Pixel(0, -6),
@@ -519,6 +319,7 @@ function showCategoryMarkers(items) {
         const markerId = getMarkerId(item);
         const marker = markerRegistry.get(markerId) || renderFoodMarker(item);
         if (!marker) return;
+        setMarkerNodeState(marker, false, false);
         marker.setLabel({
             direction: 'top',
             offset: new AMap.Pixel(0, -6),
@@ -555,6 +356,7 @@ function removeFoodMarker(item) {
 function hideAllMarkers() {
     closeFoodInfoWindowImpl();
     markerRegistry.forEach((marker, markerId) => {
+        setMarkerNodeState(marker, false, false);
         marker.setLabel(null);
         marker.setMap(null);
         visibleMarkerIds.delete(markerId);
@@ -743,11 +545,8 @@ const MapEngine = {
             focusMapOnCityForSearch(cityLabel, zoomOrDone, done);
         }
     },
-    previewDrivingRouteToRestaurant(item, callback) {
-        previewDrivingRouteToRestaurant(item, callback);
-    },
-    clearRoutePreview() {
-        clearRoutePreview();
+    getNavigationOriginForItem(item, callback) {
+        getNavigationOriginForItem(item, callback);
     },
     getLastFocusedNavItem() {
         return lastFocusedNavItem;
