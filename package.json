@@ -1,0 +1,16 @@
+{
+  "name": "food-protocol-uniapp",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:h5": "uni",
+    "build:h5": "uni build --type h5"
+  },
+  "dependencies": {
+    "vue": "^3.0.0"
+  },
+  "devDependencies": {
+    "@dcloudio/uni-cli-shared": "latest",
+    "vite": "latest"
+  }
+}
