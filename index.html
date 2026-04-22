@@ -1,24 +1,108 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
+<head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>吃货同步协议</title>
-    <script type="module" src="/src/main.js"></script>
-  </head>
-  <body>
-    <div id="app"></div>
-  </body>
-</html>
-<!DOCTYPE html>
-<html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>吃货同步协议</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/main.js"></script>
-  </body>
+    <link rel="preconnect" href="https://webapi.amap.com" />
+    <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+    <div class="ambient-blobs" aria-hidden="true">
+        <div class="ambient-blob ambient-blob-a"></div>
+        <div class="ambient-blob ambient-blob-b"></div>
+    </div>
+
+    <header class="gem-topbar">
+        <div class="gem-topbar-inner">
+            <button id="drawer-toggle" class="gem-icon-btn gem-menu-toggle" aria-label="打开主菜单" aria-expanded="false">
+                <span class="gem-ico-menu">☰</span>
+                <span class="gem-ico-close">✕</span>
+            </button>
+            <div class="gem-topbar-brand">
+                <div class="gem-topbar-logo">🍽️</div>
+                <div class="gem-topbar-title">吃货同步协议</div>
+            </div>
+            <div class="gem-topbar-actions">
+                <button id="theme-picker-toggle" class="gem-icon-btn theme-picker-toggle" aria-label="切换主题" aria-expanded="false">🎨</button>
+                <div id="theme-picker-panel" class="theme-picker-panel" hidden>
+                    <button class="theme-swatch" data-theme-bg="#FDF6EC" data-theme-primary="#1A73E8" data-theme-border="#9AB8E6" aria-label="奶油蓝主题"></button>
+                    <button class="theme-swatch" data-theme-bg="#F3F8EE" data-theme-primary="#2E7D32" data-theme-border="#8FCF8A" aria-label="清新绿主题"></button>
+                    <button class="theme-swatch" data-theme-bg="#F4F1FB" data-theme-primary="#5E35B1" data-theme-border="#B59DE5" aria-label="薰衣草主题"></button>
+                    <button class="theme-swatch" data-theme-bg="#FFF2E8" data-theme-primary="#EF6C00" data-theme-border="#F1AA6B" aria-label="落日橙主题"></button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div id="drawer-scrim" class="drawer-scrim" aria-hidden="true"></div>
+
+    <aside id="side-panel" class="gem-side-panel" aria-hidden="true">
+        <div class="gem-drawer-head">
+            <h3 class="gem-drawer-title">收藏矩阵</h3>
+            <button id="drawer-close-btn" class="gem-icon-btn gem-drawer-close" aria-label="关闭侧边栏">✕</button>
+        </div>
+        <div class="gem-drawer-body">
+            <div id="collection-list">
+                <div id="city-pill-bar" class="city-pill-scroll"></div>
+                <div id="collection-group-identity" class="collection-group-identity"></div>
+                <div id="collection-tree"></div>
+            </div>
+        </div>
+    </aside>
+
+    <section id="search-float" class="search-box">
+        <div class="search-float-row">
+            <div class="search-city-group">
+                <span class="search-city-label">城市</span>
+                <input id="searchCityInput" class="search-city-input" type="text" placeholder="输入城市" />
+                <button id="searchCityApply" class="search-city-apply">应用</button>
+            </div>
+            <div class="search-box-main">
+                <input id="searchInput" type="text" placeholder="搜索餐厅或地点..." />
+                <button id="searchSubmitBtn" class="search-submit-btn" aria-label="搜索">🔍</button>
+            </div>
+        </div>
+        <div id="search-city-hint" class="search-city-hint" hidden></div>
+        <div id="result-list"></div>
+    </section>
+
+    <section id="group-settings-panel" class="group-panel" hidden>
+        <div class="group-panel-inner">
+            <div class="group-current">当前小组：<span id="group-current-name">默认小组</span></div>
+            <div class="group-actions">
+                <button id="group-create-btn" class="group-btn">创建</button>
+                <button id="group-join-btn" class="group-btn">加入</button>
+            </div>
+            <div id="group-create-box" class="group-box" hidden>
+                <div class="group-box-title">创建小组</div>
+                <input id="group-name-input" class="group-name-input" type="text" placeholder="输入小组名" />
+                <button id="group-create-confirm" class="group-join-confirm">确认创建</button>
+            </div>
+            <div id="group-join-box" class="group-box" hidden>
+                <div class="group-box-title">加入小组</div>
+                <input id="group-join-input" class="group-join-input" type="text" maxlength="6" placeholder="输入邀请码" />
+                <button id="group-join-confirm" class="group-join-confirm">确认加入</button>
+            </div>
+            <p id="group-status" class="group-status"></p>
+        </div>
+    </section>
+
+    <p id="protocol-teleport-hint" class="protocol-teleport-hint" hidden>请先在地图上选中一家餐厅</p>
+    <button id="protocol-teleport-trigger" class="protocol-teleport-fab" aria-label="发起传送">
+        <span class="protocol-teleport-fab-icon">✦</span>
+        <span class="protocol-teleport-fab-label">发起传送</span>
+    </button>
+
+    <main id="container"></main>
+
+    <script src="./js/config.js"></script>
+    <script src="./js/storage.js"></script>
+    <script src="./js/group.js"></script>
+    <script src="./js/map-engine.js"></script>
+    <script src="./js/collection-ui.js"></script>
+    <script src="./js/search.js"></script>
+    <script src="./js/protocol-nav.js"></script>
+    <script src="./js/main.js"></script>
+</body>
 </html>
