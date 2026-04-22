@@ -11,6 +11,9 @@ window.onload = async function() {
         initSearchModule();
         initTeleportFab();
         initFixedUIInteractionGuard();
+        if (window.SupabaseSync && typeof window.SupabaseSync.start === 'function') {
+            window.SupabaseSync.start();
+        }
         console.log("💡 准备就绪，全国搜索餐饮 POI，收纳你的私藏。");
     } catch (error) {
         console.error("❌ 地图加载失败：", error);

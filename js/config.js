@@ -9,3 +9,10 @@ window.AMAP_CONFIG = {
 };
 /** @type {typeof window.AMAP_CONFIG} 供其它脚本用标识符访问 */
 var AMAP_CONFIG = window.AMAP_CONFIG;
+
+window.SUPABASE_CONFIG = {
+    // 与 Uni-app 时代保持一致的项目地址和 anon key
+    url: "https://yyjcwldberdlcrdwhyuo.supabase.co",
+    anonKey: "sb_publishable_7uJIM9rpIhD9-31p58MM8A_uvqxHf45",
+    pollMs: 8000
+};
