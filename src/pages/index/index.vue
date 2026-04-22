@@ -221,11 +221,11 @@ export default {
                 this.showLoginPanel = false;
                 await this.loadNodes();
                 this.startSync();
+                // #endif
             } catch (err) {
                 uni.showToast({ title: "微信登录失败", icon: "none" });
                 console.error(err);
             }
-            // #endif
         },
         handleLogout() {
             signOut();
