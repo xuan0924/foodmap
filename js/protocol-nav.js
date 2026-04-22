@@ -24,17 +24,37 @@
             <p class="protocol-nav-title" id="protocol-nav-title">定向链路</p>
             <p class="protocol-nav-status" id="protocol-nav-status" role="status"></p>
             <div class="protocol-nav-matrix">
-                <button type="button" class="protocol-nav-btn" data-provider="amap">高德地图</button>
-                <button type="button" class="protocol-nav-btn" data-provider="baidu">百度地图</button>
-                <button type="button" class="protocol-nav-btn" data-provider="system">系统地图</button>
+                <button type="button" class="protocol-nav-card" data-provider="amap">
+                    <span class="protocol-nav-card-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="28" height="28"><path fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 9a2.5 2.5 0 0 1 0 5.5z"/></svg>
+                    </span>
+                    <span class="protocol-nav-card-label">高德地图</span>
+                </button>
+                <button type="button" class="protocol-nav-card" data-provider="baidu">
+                    <span class="protocol-nav-card-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="28" height="28"><path fill="currentColor" d="M12 18.5l6-3v-10l-6 3-6-3v10l6 3zm0 2l-8-4V5l8 4 8-4v11.5l-8 4z"/></svg>
+                    </span>
+                    <span class="protocol-nav-card-label">百度地图</span>
+                </button>
+                <button type="button" class="protocol-nav-card" data-provider="system">
+                    <span class="protocol-nav-card-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="28" height="28"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                    </span>
+                    <span class="protocol-nav-card-label">系统地图</span>
+                </button>
             </div>
-            <button type="button" class="protocol-nav-close" id="protocol-nav-close" aria-label="关闭">关闭</button>
+            <button type="button" class="protocol-nav-close" id="protocol-nav-close" aria-label="关闭">
+                <span class="protocol-nav-close-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </span>
+                关闭
+            </button>
         `;
         document.body.appendChild(scrimEl);
         document.body.appendChild(sheetEl);
 
         sheetEl.querySelector('#protocol-nav-close').addEventListener('click', closeSheet);
-        sheetEl.querySelectorAll('.protocol-nav-btn').forEach((btn) => {
+        sheetEl.querySelectorAll('.protocol-nav-card').forEach((btn) => {
             btn.addEventListener('mousedown', () => btn.classList.add('is-pressed'));
             btn.addEventListener('mouseup', () => btn.classList.remove('is-pressed'));
             btn.addEventListener('mouseleave', () => btn.classList.remove('is-pressed'));

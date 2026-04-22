@@ -9,6 +9,7 @@ window.onload = async function() {
             window.GroupManager.init();
         }
         initSearchModule();
+        initTeleportFab();
         console.log("💡 准备就绪，全国搜索餐饮 POI，收纳你的私藏。");
     } catch (error) {
         console.error("❌ 地图加载失败：", error);
@@ -34,6 +35,40 @@ function loadAMapScript() {
         script.onload = () => resolve();
         script.onerror = () => reject(new Error("高德地图脚本加载失败"));
         document.head.appendChild(script);
+    });
+}
+
+function initTeleportFab() {
+    const fab = document.getElementById('protocol-teleport-trigger');
+    const hint = document.getElementById('protocol-teleport-hint');
+    if (!fab) return;
+
+    const setPressed = (on) => fab.classList.toggle('is-pressed', on);
+    fab.addEventListener('mousedown', () => setPressed(true));
+    fab.addEventListener('mouseup', () => setPressed(false));
+    fab.addEventListener('mouseleave', () => setPressed(false));
+    fab.addEventListener('touchstart', () => setPressed(true), { passive: true });
+    fab.addEventListener('touchend', () => setPressed(false));
+
+    fab.addEventListener('click', () => {
+        const item =
+            window.MapEngine && typeof MapEngine.getLastFocusedNavItem === 'function'
+                ? MapEngine.getLastFocusedNavItem()
+                : null;
+        if (!item) {
+            if (hint) {
+                hint.textContent = '请先在地图或收藏中点选一家餐厅';
+                hint.hidden = false;
+                clearTimeout(fab._hintTimer);
+                fab._hintTimer = setTimeout(() => {
+                    hint.hidden = true;
+                }, 2600);
+            }
+            return;
+        }
+        if (MapEngine.beginTeleport) {
+            MapEngine.beginTeleport(item);
+        }
     });
 }
 

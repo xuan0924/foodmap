@@ -5,6 +5,10 @@ const markerRegistry = new Map();
 const markerDataRegistry = new Map();
 const visibleMarkerIds = new Set();
 let activeMarkerId = null;
+/** @type {object | null} 最近一次从收藏/列表聚焦的店铺（用于「发起传送」） */
+let lastFocusedNavItem = null;
+/** @type {AMap.InfoWindow | null} */
+let foodInfoWindowInstance = null;
 /** @type {AMap.Polyline[]} */
 let routePreviewLines = [];
 
@@ -180,6 +184,110 @@ function previewDrivingRouteToRestaurant(item, callback) {
     });
 }
 
+function escapeHtml(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function closeFoodInfoWindowImpl() {
+    if (!foodInfoWindowInstance) return;
+    try {
+        foodInfoWindowInstance.close();
+    } catch (e) {
+        /* ignore */
+    }
+    foodInfoWindowInstance = null;
+}
+
+/**
+ * 预览路径并打开底部导航矩阵（仅应由「发起传送」二次触发）
+ */
+function runTeleportFlow(item) {
+    if (!item || !mapInstance) return;
+    if (window.ProtocolNav && typeof ProtocolNav.flashLinking === 'function') {
+        ProtocolNav.flashLinking(item.name);
+    }
+    function openSheetFromOrigin(originLngLat) {
+        if (!window.ProtocolNav || typeof ProtocolNav.openSheet !== 'function') return;
+        let o = originLngLat;
+        if (!o && mapInstance.getCenter) {
+            const c = mapInstance.getCenter();
+            if (c && typeof c.getLng === 'function') o = [c.getLng(), c.getLat()];
+            else if (c && c.lng != null) o = [c.lng, c.lat];
+        }
+        ProtocolNav.openSheet(item, o || [item.lng, item.lat]);
+    }
+    previewDrivingRouteToRestaurant(item, function (_ok, originLngLat) {
+        openSheetFromOrigin(originLngLat);
+    });
+}
+
+function attachMarkerClickIfNeeded(marker, markerId) {
+    if (!marker || marker.__foodMarkerClickBound) return;
+    marker.__foodMarkerClickBound = true;
+    marker.on('click', function (ev) {
+        if (ev && typeof ev.stopPropagation === 'function') {
+            ev.stopPropagation();
+        }
+        const data = markerDataRegistry.get(markerId);
+        if (data) {
+            openFoodInfoWindowUI(data);
+        }
+    });
+}
+
+/**
+ * 打开定制信息窗（点击 Marker / 列表时调用，不自动进入导航）
+ */
+function openFoodInfoWindowUI(item) {
+    if (!mapInstance || !item || typeof AMap === 'undefined') return;
+
+    closeFoodInfoWindowImpl();
+    focusMarker(item);
+
+    const root = document.createElement('div');
+    root.className = 'food-info-window-root';
+
+    const name = escapeHtml(item.name || '未命名');
+    const addr = escapeHtml(item.address || '地址不详');
+
+    root.innerHTML = `
+        <div class="food-info-window-card">
+            <div class="food-info-window-main">
+                <h3 class="food-info-window-name">${name}</h3>
+                <p class="food-info-window-addr">${addr}</p>
+            </div>
+            <div class="food-info-window-footer">
+                <button type="button" class="food-info-window-nav-btn">
+                    <span class="food-info-window-nav-line1">发起传送</span>
+                    <span class="food-info-window-nav-line2">Start Navigation</span>
+                </button>
+            </div>
+        </div>`;
+
+    const btn = root.querySelector('.food-info-window-nav-btn');
+    if (btn) {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeFoodInfoWindowImpl();
+            runTeleportFlow(item);
+        });
+    }
+
+    foodInfoWindowInstance = new AMap.InfoWindow({
+        isCustom: true,
+        anchor: 'bottom-center',
+        offset: new AMap.Pixel(0, -36),
+        content: root,
+        closeWhenClickMap: true
+    });
+    foodInfoWindowInstance.open(mapInstance, [item.lng, item.lat]);
+}
+
 function getMarkerEmoji(item) {
     const text = `${item && item.category ? item.category : ''}${item && item.name ? item.name : ''}`;
     if (/咖啡|coffee|拿铁|美式/i.test(text)) return '☕';
@@ -231,6 +339,7 @@ function renderFoodMarker(item) {
     const existingMarker = markerRegistry.get(markerId);
     if (existingMarker) {
         markerDataRegistry.set(markerId, item);
+        attachMarkerClickIfNeeded(existingMarker, markerId);
         return existingMarker;
     }
 
@@ -243,6 +352,7 @@ function renderFoodMarker(item) {
 
     markerRegistry.set(markerId, marker);
     markerDataRegistry.set(markerId, item);
+    attachMarkerClickIfNeeded(marker, markerId);
     return marker;
 }
 
@@ -290,6 +400,8 @@ function focusMarker(item) {
     activeMarkerId = markerId;
 
     flyToPosition([item.lng, item.lat]);
+
+    lastFocusedNavItem = item;
 }
 
 function showCategoryMarkers(items) {
@@ -321,6 +433,8 @@ function removeFoodMarker(item) {
     const marker = markerRegistry.get(markerId);
     if (!marker) return;
 
+    closeFoodInfoWindowImpl();
+
     marker.setMap(null);
     markerRegistry.delete(markerId);
     markerDataRegistry.delete(markerId);
@@ -332,6 +446,7 @@ function removeFoodMarker(item) {
 }
 
 function hideAllMarkers() {
+    closeFoodInfoWindowImpl();
     markerRegistry.forEach((marker, markerId) => {
         marker.setLabel(null);
         marker.setMap(null);
@@ -526,5 +641,11 @@ const MapEngine = {
     },
     clearRoutePreview() {
         clearRoutePreview();
-    }
+    },
+    getLastFocusedNavItem() {
+        return lastFocusedNavItem;
+    },
+    showFoodInfoWindow: openFoodInfoWindowUI,
+    closeFoodInfoWindow: closeFoodInfoWindowImpl,
+    beginTeleport: runTeleportFlow
 };

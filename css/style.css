@@ -18,12 +18,14 @@
     --theme-on-soft: #1f3d75;
     --theme-strong: #1557b0;
     --protocol-accent: var(--theme-primary);
+    /* --protocol-accent 与透明色 50% 混合，用于边框与图标 */
+    --protocol-accent-50: color-mix(in srgb, var(--protocol-accent) 50%, transparent);
     --protocol-bg: var(--app-bg-color);
     --protocol-text: var(--gem-text);
     --gem-topbar-h: 64px;
     --gem-side-w: 304px;
-    --gem-font: "Roboto", "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
-    --gem-title-font: "Roboto", "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+    --gem-font: "Plus Jakarta Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+    --gem-title-font: var(--gem-font);
 }
 
 *, *::before, *::after {
@@ -40,6 +42,71 @@ body, html {
     font-size: 14px;
     color: var(--gem-text);
     -webkit-font-smoothing: antialiased;
+    background: var(--app-bg-color);
+}
+
+/* —— 全局动态渐变光斑（柔和环境光） —— */
+.ambient-blobs {
+    position: fixed;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    overflow: hidden;
+    mix-blend-mode: soft-light;
+    opacity: 0.72;
+}
+
+.ambient-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(72px);
+    will-change: transform;
+}
+
+.ambient-blob-a {
+    width: min(72vmin, 560px);
+    height: min(72vmin, 560px);
+    top: -18%;
+    left: -22%;
+    background: radial-gradient(
+        circle at 35% 35%,
+        color-mix(in srgb, var(--protocol-accent) 52%, white) 0%,
+        color-mix(in srgb, var(--protocol-accent) 18%, transparent) 52%,
+        transparent 72%
+    );
+    animation: ambient-drift-a 52s ease-in-out infinite alternate;
+}
+
+.ambient-blob-b {
+    width: min(68vmin, 520px);
+    height: min(68vmin, 520px);
+    bottom: -24%;
+    right: -20%;
+    background: radial-gradient(
+        circle at 65% 40%,
+        color-mix(in srgb, var(--theme-primary) 42%, #fff8f0) 0%,
+        color-mix(in srgb, var(--protocol-accent) 22%, transparent) 55%,
+        transparent 75%
+    );
+    animation: ambient-drift-b 58s ease-in-out infinite alternate;
+}
+
+@keyframes ambient-drift-a {
+    0% {
+        transform: translate(0, 0) scale(1);
+    }
+    100% {
+        transform: translate(12vw, 8vh) scale(1.12);
+    }
+}
+
+@keyframes ambient-drift-b {
+    0% {
+        transform: translate(0, 0) scale(1.05);
+    }
+    100% {
+        transform: translate(-10vw, -12vh) scale(1.08);
+    }
 }
 
 #container {
@@ -47,6 +114,7 @@ body, html {
     height: 100%;
     position: absolute;
     z-index: 1;
+    isolation: isolate;
 }
 
 /* —— 顶栏（对齐 Gemini 顶栏） —— */
@@ -85,7 +153,7 @@ body, html {
 }
 
 .theme-picker-toggle {
-    color: var(--primary-color);
+    color: var(--protocol-accent-50);
 }
 
 .theme-picker-panel {
@@ -98,8 +166,10 @@ body, html {
     gap: 8px;
     padding: 10px;
     border-radius: 14px;
-    border: 1px solid var(--gem-border);
-    background: var(--gem-surface);
+    border: 1px solid var(--protocol-accent-50);
+    background: color-mix(in srgb, var(--protocol-bg) 78%, transparent);
+    backdrop-filter: blur(14px) saturate(150%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
     box-shadow: 0 8px 24px rgba(60, 64, 67, 0.18);
 }
 
@@ -135,9 +205,9 @@ body, html {
 
 .gem-topbar-title {
     font-size: 1.375rem;
-    font-family: var(--gem-font);
-    font-weight: 400;
-    letter-spacing: -0.03em;
+    font-family: var(--gem-title-font);
+    font-weight: 500;
+    letter-spacing: 0.1em;
     color: var(--gem-text);
     white-space: nowrap;
     overflow: hidden;
@@ -208,7 +278,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     width: min(var(--gem-side-w), 100vw);
     z-index: 160;
     background: rgba(255, 255, 255, 0.38);
-    border-right: 1px solid var(--gem-border);
+    border-right: 1px solid var(--protocol-accent-50);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     display: flex;
@@ -237,10 +307,10 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 .gem-drawer-title {
     margin: 0;
     font-size: 1rem;
-    font-family: var(--gem-font);
-    font-weight: 500;
+    font-family: var(--gem-title-font);
+    font-weight: 600;
     color: var(--theme-strong);
-    letter-spacing: -0.01em;
+    letter-spacing: 0.1em;
 }
 
 .gem-drawer-close {
@@ -520,8 +590,8 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     font-size: 11px;
     font-weight: 600;
     color: var(--gem-text-secondary);
-    font-family: var(--gem-font);
-    letter-spacing: 0.06em;
+    font-family: var(--gem-title-font);
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     flex-shrink: 0;
     background: rgba(255, 255, 255, 0.28);
@@ -606,6 +676,8 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     font-size: 12px;
     color: var(--gem-text-secondary);
     margin-bottom: 5px;
+    font-family: var(--gem-title-font);
+    letter-spacing: 0.1em;
 }
 
 .group-code-display {
@@ -1066,16 +1138,90 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
 }
 
-/* —— 吃货同步协议 · 动态主题导航矩阵（Bottom Sheet） —— */
+/* —— 发起传送（入口悬浮） —— */
+.protocol-teleport-hint {
+    position: fixed;
+    left: 50%;
+    bottom: calc(100px + env(safe-area-inset-bottom, 0));
+    z-index: 120;
+    transform: translateX(-50%);
+    max-width: min(90vw, 320px);
+    margin: 0;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-family: var(--gem-font);
+    text-align: center;
+    color: var(--protocol-text);
+    background: color-mix(in srgb, var(--protocol-bg) 86%, transparent);
+    border: 1px solid var(--protocol-accent-50);
+    border-radius: 18px;
+    box-shadow: 0 6px 20px rgba(32, 33, 36, 0.12);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    pointer-events: none;
+}
+
+.protocol-teleport-fab {
+    position: fixed;
+    right: 16px;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0));
+    z-index: 120;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 88px;
+    padding: 10px 14px 12px;
+    border: 1px solid var(--protocol-accent-50);
+    border-radius: 22px;
+    background: color-mix(in srgb, var(--protocol-bg) 70%, transparent);
+    color: var(--protocol-text);
+    font-family: var(--gem-font);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    box-shadow:
+        0 4px 20px color-mix(in srgb, var(--protocol-accent) 20%, transparent),
+        inset 0 1px 0 color-mix(in srgb, #fff 40%, transparent);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    transition: transform 0.16s ease, box-shadow 0.2s ease;
+}
+
+.protocol-teleport-fab:hover {
+    box-shadow:
+        0 6px 24px color-mix(in srgb, var(--protocol-accent) 28%, transparent),
+        inset 0 1px 0 color-mix(in srgb, #fff 50%, transparent);
+}
+
+.protocol-teleport-fab.is-pressed {
+    transform: scale(0.95);
+}
+
+.protocol-teleport-fab-icon {
+    display: flex;
+    color: var(--protocol-accent-50);
+    line-height: 0;
+}
+
+.protocol-teleport-fab-label {
+    line-height: 1.2;
+}
+
+/* —— 吃货同步协议 · 玻璃拟态导航矩阵（Bottom Sheet） —— */
 .protocol-nav-scrim {
     position: fixed;
     inset: 0;
     z-index: 399;
-    background: rgba(32, 33, 36, 0.42);
+    background: rgba(32, 33, 36, 0.38);
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.22s ease, visibility 0.22s ease;
+    transition: opacity 0.24s ease, visibility 0.24s ease;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
 }
 
 .protocol-nav-scrim.visible {
@@ -1090,17 +1236,21 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     right: 0;
     bottom: 0;
     z-index: 400;
-    max-height: min(72vh, 520px);
+    max-height: min(78vh, 540px);
     padding: 8px 20px calc(20px + env(safe-area-inset-bottom, 0));
-    background: var(--protocol-bg);
     color: var(--protocol-text);
-    border-radius: 28px 28px 0 0;
     font-family: var(--gem-font);
+    border-radius: 32px 32px 0 0;
+    border: 1px solid var(--protocol-accent-50);
+    border-bottom: none;
+    background: color-mix(in srgb, var(--protocol-bg) 68%, transparent);
     box-shadow:
-        0 -4px 24px rgba(32, 33, 36, 0.12),
-        0 0 0 1px color-mix(in srgb, var(--protocol-accent) 18%, transparent);
-    transform: translate3d(0, 105%, 0);
-    transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+        0 -8px 40px rgba(32, 33, 36, 0.14),
+        inset 0 1px 0 color-mix(in srgb, #fff 36%, transparent);
+    backdrop-filter: blur(22px) saturate(170%);
+    -webkit-backdrop-filter: blur(22px) saturate(170%);
+    transform: translate3d(0, 108%, 0);
+    transition: transform 0.36s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .protocol-nav-sheet.open {
@@ -1108,25 +1258,27 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 }
 
 .protocol-nav-handle {
-    width: 44px;
+    width: 48px;
     height: 5px;
-    margin: 8px auto 14px;
+    margin: 10px auto 14px;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--protocol-text) 22%, transparent);
+    background: color-mix(in srgb, var(--protocol-accent-50) 55%, transparent);
 }
 
 .protocol-nav-title {
-    margin: 0 0 8px;
+    margin: 0 0 10px;
     font-size: 17px;
+    font-family: var(--gem-title-font);
     font-weight: 600;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.1em;
     color: var(--protocol-text);
 }
 
 .protocol-nav-status {
-    margin: 0 0 16px;
+    margin: 0 0 18px;
     min-height: 1.25em;
     font-size: 13px;
+    letter-spacing: 0.03em;
     color: color-mix(in srgb, var(--protocol-text) 78%, transparent);
 }
 
@@ -1137,52 +1289,199 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
 .protocol-nav-matrix {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-bottom: 12px;
+    gap: 12px;
+    margin-bottom: 14px;
 }
 
-.protocol-nav-btn {
+.protocol-nav-card {
     appearance: none;
-    border: none;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    margin: 0;
+    padding: 16px 18px;
     cursor: pointer;
-    padding: 14px 18px;
-    border-radius: 16px;
-    font-size: 15px;
-    font-weight: 600;
+    text-align: left;
     font-family: inherit;
+    border-radius: 30px;
+    border: 1px solid var(--protocol-accent-50);
     color: var(--protocol-text);
-    background: color-mix(in srgb, var(--protocol-accent) 14%, var(--protocol-bg));
-    border: 1px solid color-mix(in srgb, var(--protocol-accent) 32%, transparent);
+    background: color-mix(in srgb, var(--protocol-bg) 42%, rgba(255, 255, 255, 0.55));
     box-shadow:
-        0 2px 8px color-mix(in srgb, var(--protocol-accent) 24%, transparent),
-        0 0 20px color-mix(in srgb, var(--protocol-accent) 12%, transparent);
-    transition: transform 0.14s ease, box-shadow 0.14s ease;
+        inset 0 1px 0 color-mix(in srgb, #fff 55%, transparent),
+        0 4px 18px rgba(32, 33, 36, 0.06);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    transition: transform 0.16s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.protocol-nav-btn:hover {
+.protocol-nav-card:hover {
     box-shadow:
-        0 4px 14px color-mix(in srgb, var(--protocol-accent) 30%, transparent),
-        0 0 24px color-mix(in srgb, var(--protocol-accent) 16%, transparent);
+        inset 0 1px 0 color-mix(in srgb, #fff 65%, transparent),
+        0 8px 28px color-mix(in srgb, var(--protocol-accent) 18%, transparent);
 }
 
-.protocol-nav-btn.is-pressed {
-    transform: scale(0.95);
+.protocol-nav-card.is-pressed {
+    transform: scale(0.97);
+}
+
+.protocol-nav-card-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 18px;
+    color: var(--protocol-accent-50);
+    background: color-mix(in srgb, var(--protocol-accent) 12%, transparent);
+    border: 1px solid var(--protocol-accent-50);
+}
+
+.protocol-nav-card-label {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
 }
 
 .protocol-nav-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     width: 100%;
-    margin-top: 4px;
-    padding: 12px;
-    border-radius: 14px;
-    border: 1px solid color-mix(in srgb, var(--protocol-text) 14%, transparent);
-    background: transparent;
+    margin-top: 2px;
+    padding: 14px;
+    border-radius: 22px;
+    border: 1px solid var(--protocol-accent-50);
+    background: color-mix(in srgb, var(--protocol-bg) 35%, transparent);
     color: color-mix(in srgb, var(--protocol-text) 88%, transparent);
     font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
     font-family: inherit;
     cursor: pointer;
-    transition: transform 0.14s ease;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: transform 0.16s ease;
+}
+
+.protocol-nav-close-icon {
+    display: flex;
+    color: var(--protocol-accent-50);
+    line-height: 0;
 }
 
 .protocol-nav-close:active {
     transform: scale(0.97);
+}
+
+/* —— 餐厅信息窗（奶油杏 / 玻璃拟态，与 Marker 二次触发导航） —— */
+.food-info-window-root {
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.food-info-window-card {
+    width: min(300px, calc(100vw - 48px));
+    padding: 14px 14px 12px;
+    border-radius: 24px;
+    border: 1px solid color-mix(in srgb, var(--protocol-accent) 28%, transparent);
+    background: color-mix(in srgb, var(--protocol-bg, #fdf6ec) 58%, rgba(255, 255, 255, 0.72));
+    box-shadow:
+        0 10px 36px rgba(32, 33, 36, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(16px) saturate(155%);
+    -webkit-backdrop-filter: blur(16px) saturate(155%);
+    font-family: var(--gem-font);
+}
+
+.food-info-window-main {
+    padding-right: 8px;
+    margin-bottom: 12px;
+}
+
+.food-info-window-name {
+    margin: 0 0 8px;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--protocol-text);
+    line-height: 1.35;
+}
+
+.food-info-window-addr {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    letter-spacing: 0.02em;
+    color: color-mix(in srgb, var(--protocol-text) 72%, transparent);
+}
+
+.food-info-window-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-end;
+}
+
+.food-info-window-nav-btn {
+    appearance: none;
+    cursor: pointer;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    margin: 0;
+    padding: 10px 14px;
+    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, var(--protocol-accent) 45%, transparent);
+    background: linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--protocol-accent) 22%, white) 0%,
+        color-mix(in srgb, var(--protocol-accent) 12%, var(--protocol-bg, #fdf6ec)) 100%
+    );
+    color: color-mix(in srgb, var(--protocol-accent) 88%, var(--protocol-text));
+    font-family: inherit;
+    box-shadow:
+        0 2px 10px color-mix(in srgb, var(--protocol-accent) 22%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+
+.food-info-window-nav-btn:hover {
+    box-shadow:
+        0 4px 14px color-mix(in srgb, var(--protocol-accent) 30%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.food-info-window-nav-btn:active {
+    transform: scale(0.96);
+}
+
+.food-info-window-nav-line1 {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+}
+
+.food-info-window-nav-line2 {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: none;
+    opacity: 0.92;
+}
+
+/* 去掉高德默认信息窗外层白底，使自定义玻璃卡片完整展示 */
+.amap-info-outer,
+.amap-menu-outer {
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
 }
