@@ -237,6 +237,18 @@ body, html {
     pointer-events: auto;
 }
 
+/* 侧边栏内容区需要正常触摸/点击与滚动 */
+.gem-side-panel,
+.gem-side-panel * {
+    pointer-events: auto;
+}
+
+.gem-drawer-body,
+#collection-list,
+#collection-tree {
+    touch-action: pan-y;
+}
+
 .gem-icon-btn {
     display: inline-flex;
     align-items: center;
@@ -280,7 +292,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     position: fixed;
     inset: 0;
     top: var(--gem-topbar-h);
-    z-index: 150;
+    z-index: 250;
     background: rgba(32, 33, 36, 0.12);
     opacity: 0;
     pointer-events: none;
@@ -292,6 +304,12 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     pointer-events: auto;
 }
 
+html.drawer-open #search-float,
+html.drawer-open #protocol-teleport-trigger,
+html.drawer-open #protocol-teleport-hint {
+    pointer-events: none;
+}
+
 /* —— 左侧导航抽屉 —— */
 .gem-side-panel {
     position: fixed;
@@ -299,7 +317,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     left: 0;
     bottom: 0;
     width: min(var(--gem-side-w), 100vw);
-    z-index: 160;
+    z-index: 300;
     background: rgba(255, 255, 255, 0.38);
     border-right: 1px solid var(--protocol-accent-50);
     backdrop-filter: blur(10px);
@@ -357,7 +375,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     left: 50%;
     transform: translateX(-50%);
     width: min(700px, calc(100vw - 20px));
-    z-index: 220;
+    z-index: 180;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }
@@ -1212,7 +1230,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     position: fixed;
     left: 50%;
     bottom: calc(100px + env(safe-area-inset-bottom, 0));
-    z-index: 120;
+    z-index: 320;
     transform: translateX(-50%);
     max-width: min(90vw, 320px);
     margin: 0;
@@ -1234,7 +1252,7 @@ html.drawer-open .gem-menu-toggle .gem-ico-close {
     position: fixed;
     right: 16px;
     bottom: calc(20px + env(safe-area-inset-bottom, 0));
-    z-index: 120;
+    z-index: 320;
     display: inline-flex;
     flex-direction: column;
     align-items: center;

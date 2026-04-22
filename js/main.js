@@ -74,7 +74,7 @@ function initTeleportFab() {
 }
 
 function initFixedUIInteractionGuard() {
-    const uiSelectors = [
+    const roots = [
         '.gem-topbar',
         '#side-panel',
         '#drawer-scrim',
@@ -83,21 +83,17 @@ function initFixedUIInteractionGuard() {
         '#protocol-teleport-hint',
         '#protocol-nav-sheet',
         '#protocol-nav-scrim'
-    ];
-    const isInFixedUI = (target) => {
-        if (!target || !target.closest) return false;
-        return uiSelectors.some((sel) => target.closest(sel));
-    };
+    ]
+        .map((sel) => document.querySelector(sel))
+        .filter(Boolean);
+
     ['touchstart', 'pointerdown', 'mousedown', 'click'].forEach((eventName) => {
-        document.addEventListener(
-            eventName,
-            (e) => {
-                if (isInFixedUI(e.target)) {
-                    e.stopPropagation();
-                }
-            },
-            true
-        );
+        roots.forEach((el) => {
+            el.addEventListener(eventName, (e) => {
+                // 让组件本身先处理点击，再阻断向地图层冒泡。
+                e.stopPropagation();
+            });
+        });
     });
 }
 
