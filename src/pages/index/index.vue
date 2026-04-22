@@ -35,8 +35,11 @@
         </view>
 
         <view v-if="showSidebar" class="sidebar-overlay" @click.self="showSidebar = false">
-            <view class="sidebar-panel glass-card">
-                <text class="sidebar-title cream-title">节点清单</text>
+            <view class="sidebar-panel gem-side-panel">
+                <view class="sidebar-head">
+                    <text class="sidebar-title cream-title">节点清单</text>
+                    <button class="sidebar-close" @click="showSidebar = false">✕</button>
+                </view>
                 <scroll-view scroll-y class="sidebar-list">
                     <view
                         v-for="item in nodes"
@@ -99,21 +102,6 @@
         </view>
 
         <view class="bottom-card glass-card">
-            <text class="nodes-text">当前节点数：{{ nodes.length }}</text>
-            <view class="node-status-group">
-                <view class="node-status-item">
-                    <text class="node-dot dot-green"></text>
-                    <text class="node-status-text">已定位 {{ nodeStats.located }}</text>
-                </view>
-                <view class="node-status-item">
-                    <text class="node-dot dot-blue"></text>
-                    <text class="node-status-text">有地址 {{ nodeStats.withAddress }}</text>
-                </view>
-                <view class="node-status-item">
-                    <text class="node-dot dot-orange"></text>
-                    <text class="node-status-text">待完善 {{ nodeStats.pending }}</text>
-                </view>
-            </view>
             <button class="refresh-btn" @click="loadNodes">刷新节点</button>
             <button v-if="isLoggedIn" class="logout-btn" @click="handleLogout">退出</button>
         </view>
@@ -176,16 +164,6 @@ export default {
             return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
                 SUPABASE_CONFIG.wechatBridgeUrl
             )}`;
-        },
-        nodeStats() {
-            const located = this.nodes.filter((n) => Number.isFinite(n.lng) && Number.isFinite(n.lat)).length;
-            const withAddress = this.nodes.filter((n) => !!n.address).length;
-            const pending = Math.max(this.nodes.length - withAddress, 0);
-            return {
-                located,
-                withAddress,
-                pending
-            };
         }
     },
     onLoad() {
@@ -546,42 +524,71 @@ export default {
 .sidebar-overlay {
     position: fixed;
     inset: 0;
-    z-index: 30;
-    background: rgba(0, 0, 0, 0.06);
+    z-index: 250;
+    top: 0;
+    background: rgba(32, 33, 36, 0.12);
 }
 
 .sidebar-panel {
     position: absolute;
-    left: 20rpx;
-    top: 116rpx;
-    bottom: calc(120rpx + env(safe-area-inset-bottom));
-    width: 420rpx;
-    padding: 22rpx;
-    background: rgba(255, 255, 255, 0.8);
-    border: none;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: min(620rpx, 88vw);
+    padding: 0;
+    background: rgba(255, 255, 255, 0.38);
     color: var(--text-deep);
+    transform: translateX(0);
+    box-shadow: 8rpx 0 36rpx rgba(80, 92, 110, 0.16);
+}
+
+.gem-side-panel {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.sidebar-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22rpx 16rpx 22rpx 26rpx;
+    background: rgba(255, 141, 66, 0.12);
+}
+
+.sidebar-close {
+    width: 56rpx;
+    height: 56rpx;
+    border-radius: 999rpx;
+    border: none;
+    background: transparent;
+    color: var(--text-deep);
+    font-size: 28rpx;
+    line-height: 56rpx;
+    padding: 0;
 }
 
 .sidebar-title {
     display: block;
-    font-size: 30rpx;
-    margin-bottom: 16rpx;
+    font-size: 28rpx;
+    letter-spacing: 0.1em;
 }
 
 .sidebar-list {
-    height: 100%;
+    height: calc(100% - 100rpx);
+    padding: 10rpx 10rpx 24rpx;
 }
 
 .sidebar-item {
-    padding: 16rpx 18rpx;
-    border-radius: 28rpx;
-    margin-bottom: 10rpx;
-    background: rgba(255, 255, 255, 0.8);
+    padding: 18rpx 18rpx;
+    border-radius: 22rpx;
+    margin-bottom: 12rpx;
+    background: rgba(255, 255, 255, 0.9);
     color: var(--text-deep);
+    box-shadow: 0 2rpx 8rpx rgba(60, 64, 67, 0.08);
 }
 
 .sidebar-item.is-active {
-    background: linear-gradient(130deg, rgba(255, 141, 66, 0.22), rgba(255, 141, 66, 0.45));
+    background: linear-gradient(180deg, rgba(255, 141, 66, 0.16), rgba(255, 141, 66, 0.28));
     color: var(--text-deep);
 }
 
@@ -606,53 +613,10 @@ export default {
     padding: 20rpx 24rpx;
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 14rpx;
     border-radius: 28rpx;
     box-shadow: 0 14rpx 34rpx rgba(62, 49, 32, 0.12), 0 2rpx 8rpx rgba(62, 49, 32, 0.08);
-}
-
-.nodes-text {
-    font-size: 26rpx;
-    color: var(--text-deep);
-}
-
-.node-status-group {
-    display: flex;
-    align-items: center;
-    gap: 12rpx;
-}
-
-.node-status-item {
-    display: flex;
-    align-items: center;
-    gap: 6rpx;
-    padding: 8rpx 12rpx;
-    border-radius: 999rpx;
-    background: rgba(255, 255, 255, 0.8);
-}
-
-.node-dot {
-    width: 14rpx;
-    height: 14rpx;
-    border-radius: 999rpx;
-}
-
-.dot-green {
-    background: var(--node-green);
-}
-
-.dot-blue {
-    background: var(--node-blue);
-}
-
-.dot-orange {
-    background: var(--accent-orange);
-}
-
-.node-status-text {
-    font-size: 20rpx;
-    color: var(--text-deep);
 }
 
 .refresh-btn {
