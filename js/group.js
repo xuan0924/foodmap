@@ -138,7 +138,15 @@
         }
 
         document.addEventListener('click', (e) => {
-            const btn = e.target && typeof e.target.closest === 'function' ? e.target.closest('#group-settings-toggle') : null;
+            const targetEl =
+                e && e.target && e.target.nodeType === 3
+                    ? e.target.parentElement
+                    : e && e.target
+                        ? e.target
+                        : null;
+            const btn = targetEl && typeof targetEl.closest === 'function'
+                ? targetEl.closest('#group-settings-toggle')
+                : null;
             if (btn) {
                 const nextOpen = settingsPanel ? settingsPanel.hidden : true;
                 setSettingsOpen(nextOpen);
