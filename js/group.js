@@ -137,6 +137,7 @@
             if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
         }
 
+        // 用捕获阶段监听，避免被侧边栏的 stopPropagation 拦截
         document.addEventListener('click', (e) => {
             const targetEl =
                 e && e.target && e.target.nodeType === 3
@@ -156,7 +157,7 @@
                 const insidePanel = settingsPanel.contains(e.target);
                 if (!insidePanel) setSettingsOpen(false);
             }
-        });
+        }, true);
 
         refreshGroupLabel();
 
